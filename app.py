@@ -1,0 +1,828 @@
+import streamlit as st
+import time
+import base64
+
+from helpers_analytics import *
+from helpers_ai_prompting import *
+from user_login import *
+
+from PIL import Image, UnidentifiedImageError
+from docx import Document
+from docx.shared import RGBColor  # Added for color control
+from io import BytesIO
+from datetime import datetime
+
+from openai import OpenAI
+from google import genai
+
+from google.genai import types
+
+
+
+import json
+from pathlib import Path
+
+# --- AUTHENTICATION ---
+def check_authentication():
+    """Check if user is authenticated, show login if not."""
+    if 'authenticated' not in st.session_state:
+        st.session_state['authenticated'] = False
+    
+    if not st.session_state['authenticated']:
+        st.markdown("### 🔐 Login Required")
+        st.write("Please enter your password to access the Amazon Listing Dashboard")
+        
+        password = st.text_input("Password", type="password", key="login_password")
+        
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            if st.button("Login", type="primary"):
+                if password in USER_PASSWORDS:
+                    st.session_state['authenticated'] = True
+                    st.session_state['current_user'] = USER_PASSWORDS[password]
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid password. Please try again.")
+        
+        st.stop()  # Prevent rest of app from running
+    else:
+        # User is authenticated, show welcome message
+        st.sidebar.success(f"✅ Welcome {st.session_state['current_user']}!")
+        if st.sidebar.button("Logout"):
+            st.session_state['authenticated'] = False
+            st.session_state.pop('current_user', None)
+            st.rerun()
+
+def concatenate_input():
+    full_listing = ""
+
+    for i in range(1, 6):
+        subheading = st.session_state.get(f"subheading{i}", "")
+        bullet = st.session_state.get(f"bullet{i}", "")
+        
+        complete_bullet = subheading + ":" + bullet + "\n"
+        full_listing += complete_bullet + "\n"
+        
+    return full_listing
+
+
+def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
+    # Convert to list if string input
+    if isinstance(listing_search_terms, str):
+        listing_search_terms = listing_search_terms.split("\n")
+    
+    # Sort and get top N
+    listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
+    top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
+    
+    # Prepare prompt and call AI
+    fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
+    fix_keyword_response = gemini_client.models.generate_content(
+        model="gemini-2.5-flash-lite",
+        contents=fix_keyword_prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema={
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            }
+        )
+    )
+    
+    # Parse and return
+    res = json.loads(fix_keyword_response.text)
+    res = capitalize_first(res)
+    
+    return res
+
+def initialize_product_data(product_name):
+    """Initialize or update all session state variables for a product."""
+    # Load raw data
+    data, secondary_keywords = load_product_data(product_name)
+    
+    # Update session state
+    st.session_state['bullet_clusters'] = data['bullet_clusters']
+    st.session_state['bullet_diagram'] = data['bullet_diagram']
+    st.session_state['bullet_labels'] = data['bullet_labels']
+    st.session_state['bullet_keywords'] = data['bullet_keywords']
+    st.session_state['keyword_phrases'] = data['keyword_phrases']
+
+    st.session_state['secondary_keywords'] = secondary_keywords
+    
+    # Update derived variables
+    st.session_state['label_dict'] = get_cluster_dict(st.session_state['bullet_clusters'])
+    st.session_state['labels'] = st.session_state['bullet_diagram'].index.tolist()
+    st.session_state['best_phrases'] = {
+        k: count_label_occurrences(
+            st.session_state['label_dict'],
+            st.session_state['bullet_labels'],
+            k
+        ) for k in st.session_state['labels']
+    }
+
+
+# --- Streamlit Setup ---
+st.set_page_config(page_title="Image Keyword Filter", layout="wide")
+
+# Check authentication first
+check_authentication()
+
+st.title("Amazon Listing Dashboard")
+
+# Get available products
+available_products = get_available_products()
+
+if not available_products:
+    st.error("No product directories found in data_files/")
+    st.stop()
+
+# Product selector
+selected_product = st.selectbox(
+    "Select Product Type",
+    options=available_products,
+    key="product_selector",
+    width = 180
+)
+
+# Widget keys — must be set to "" so Streamlit re-renders them empty
+_WIDGET_KEYS_TO_CLEAR = [
+    "phrase_filter_and",
+    "phrase_filter_or",
+    "input_keywords",
+    "listing_bullet_keywords",
+    "keyword_listing_url_1",
+    "keyword_listing_url_2",
+    "keyword_listing_url_3",
+    "product_specs",
+    "finished_product_title",
+]
+
+# Non-widget session state keys — safe to delete outright
+_STATE_KEYS_TO_DELETE = [
+    "title_result",
+    "ai_listing_draft",
+    "photo_result",
+    "suggestion_result",
+    "synonym_result",
+    "product_components_result",
+    "rewriting_result",
+    "listing_analysis",
+    "grammar_correct_search_terms",
+    "product_listings_from_urls",
+    "fixed_keywords",
+    "filtered",
+    "displayed_images",
+    "previous_user_input",
+    "previous_user_phrase",
+    "previous_user_input_synonym",
+]
+
+def _clear_product_state():
+    """Reset all per-product session state so the UI shows a clean slate."""
+    # Set widget-backed keys to "" so Streamlit renders them empty next pass
+    for key in _WIDGET_KEYS_TO_CLEAR:
+        st.session_state[key] = ""
+    # Delete non-widget state outright
+    for key in _STATE_KEYS_TO_DELETE:
+        st.session_state.pop(key, None)
+
+# Initialize or update data when product changes
+if "current_product" not in st.session_state or st.session_state["current_product"] != selected_product:
+    with st.spinner(f"Loading {selected_product} data..."):
+        _clear_product_state()
+        initialize_product_data(selected_product)
+        st.session_state["current_product"] = selected_product
+
+        # Initialize displayed_images with first 24 rows
+        initial_df = st.session_state['bullet_labels']
+        st.session_state["displayed_images"] = initial_df.head(24) if len(initial_df) > 24 else initial_df.copy()
+
+# --- Access session state variables (same names as before) ---
+label_dict = st.session_state['label_dict']
+labels = st.session_state['labels']
+bullet_diagram = st.session_state['bullet_diagram']
+best_phrases = st.session_state['best_phrases']
+bullet_keywords = st.session_state['bullet_keywords']
+keyword_phrases = st.session_state['keyword_phrases']
+example_product_titles = "\n\n ".join(st.session_state['bullet_labels'].product_title.values.tolist()[:2])
+
+# Apply colorization to diagram
+bullet_diagram = colorize_df(bullet_diagram)
+
+st.write()
+ 
+left_col, _, right_col = st.columns([7.8, .8, 8])
+
+with left_col:
+    st.write("\n")
+    st.dataframe(bullet_diagram, use_container_width=True)
+
+with right_col:
+    selected_label = st.selectbox("Select a category:", labels)
+
+    st.markdown(f"#### {selected_label}")
+    st.dataframe(best_phrases[selected_label], use_container_width=True, height=248)
+
+
+def update_filter():
+    label = st.session_state[f"label_input_{st.session_state['current_product']}"]  # CHANGE THIS LINE
+    st.session_state["filtered"] = filter_bullets_by_phrase(
+        st.session_state['bullet_labels'], label
+    )
+    # Update displayed images automatically on filter change
+    DISPLAY_NUMBER = 50
+    filter_result = st.session_state["filtered"]
+    if len(filter_result) > DISPLAY_NUMBER:
+        st.session_state["displayed_images"] = filter_result.head(DISPLAY_NUMBER)
+    else:
+        st.session_state["displayed_images"] = filter_result.copy()
+
+with st.expander("Search for examples"):
+
+    st.text_input(
+        "Enter Label",
+        key=f"label_input_{st.session_state['current_product']}",  # CHANGE THIS LINE
+        value=st.session_state.get("label_input", ""),  
+        on_change=update_filter,
+        width = 250
+    )
+
+    if "filtered" in st.session_state:
+        filtered_df = st.session_state["filtered"]
+
+    DISPLAY_NUMBER = 50
+
+    # Render images from session state (outside button block so they persist)
+    if "displayed_images" in st.session_state:
+        trimmed_sample = st.session_state["displayed_images"]
+        
+        def to_str(val):
+            """Convert list/ndarray to readable comma-separated string."""
+            if isinstance(val, (list, set, tuple)):
+                return ", ".join(map(str, val))
+            if isinstance(val, np.ndarray):
+                return ", ".join(map(str, val.tolist()))
+            return str(val)
+
+        # FIXED_SIZE = (1200, 1200)  # width, height for all images
+        grid_cols = st.columns(3)
+
+        for idx, (_, row) in enumerate(trimmed_sample.iterrows()):
+            with grid_cols[idx % 3]:
+                img_path = row["image_path"]
+                try:
+                    # Display image
+                    st.image(img_path, use_container_width=True)
+                    
+                    # url
+                    url = row['url']
+                    st.caption(url)
+
+                    # Extract bullet
+                    full_listing = to_str(row.get("bullet_points", ""))
+                    # specific_bullet = extract_first_paragraph_by_phrase(full_listing, st.session_state["label_input"])
+
+                    st.write(f"Monthly Sales: {to_str(row.get("monthly_sales", []))}")
+                    st.markdown(
+                        f"""
+                        <div style="height: 88px; overflow: hidden;">
+                            <strong>{to_str(row.get("product_title", []))}</strong>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    st.write('')
+                    with st.expander('Show full listing'):
+                        st.markdown(row['bullet_points'].replace("\n", "\n\n"))
+
+                    st.write("\n\n")
+
+        
+
+                
+
+                except (FileNotFoundError, UnidentifiedImageError, OSError):
+                    st.warning(f"⚠️ Could not load image: {img_path}")
+           
+
+
+# NOTES: Instead of total sales, maybe also do number of listings who use its
+
+# ---------------------------------------
+#           OPENAI PHOTO FEATURE
+# ---------------------------------------
+
+@st.cache_resource
+def get_openai_client(api_key):
+    if "openai_client" not in st.session_state:
+        st.session_state.openai_client = OpenAI(api_key=api_key)
+    return st.session_state.openai_client
+
+client = get_openai_client(st.secrets["OPENAI_KEY"])
+
+@st.cache_resource
+def get_gemini_client(api_key):
+    if "gemini_client" not in st.session_state:
+        st.session_state.gemini_client = genai.Client(api_key=api_key)
+    return st.session_state.gemini_client
+
+gemini_client = get_gemini_client(st.secrets["GEMINI_KEY"])
+
+st.session_state.setdefault("photo_result", None)
+st.session_state.setdefault("title_result", None)
+st.session_state.setdefault("suggestion_result", None)
+st.session_state.setdefault("synonym_result", None)
+st.session_state.setdefault("product_components_result", None)
+st.session_state.setdefault("rewriting_result", None)
+st.session_state.setdefault("previous_user_input", None)
+st.session_state.setdefault("previous_user_phrase", None)
+st.session_state.setdefault("previous_user_input_synonym", None)
+st.session_state.setdefault("ai_expander", False)
+st.session_state.setdefault("default_tab", "Keywords & Title")
+st.session_state.setdefault("pre_optimized_listing", False)
+st.session_state.setdefault("finished_product_title", "")
+st.session_state.setdefault("fixed_keywords", "")
+st.session_state.setdefault("grammar_correct_search_terms", "")
+st.session_state.setdefault("product_listings_from_urls", [])
+st.session_state.setdefault("product_specs", "")
+st.session_state.setdefault("listing_analysis", "")
+st.session_state.setdefault("ai_listing_draft", "")
+
+st.session_state.setdefault("uploaded_images", [])
+
+# Listing optimizer
+st.session_state.setdefault("input_listing", None)
+st.session_state.setdefault("optimized_listing", None)
+
+image_description_col, _, ai_tools_col = st.columns([5, 1, 8])
+
+# =====================================================
+# Image Description Generator
+# =====================================================
+@st.cache_data(show_spinner=False)
+def load_images(files, max_size=1024):
+    imgs = []
+    for file in files:
+        file.seek(0)
+        img = Image.open(file).convert("RGB")
+        img.thumbnail((max_size, max_size))
+        imgs.append(img)
+    return imgs
+
+def sync_photo_results():
+    """
+    Called whenever uploaded_images_multiple changes.
+    Clears out photo result so it doesn't show stale data.
+    """
+    st.session_state['photo_result'] = None
+
+def process_multiple_images(images, client, system_prompt, user_instructions, model="gpt-4o-2024-08-06"):
+    """
+    Process multiple images in a single API call to OpenAI Vision.
+    
+    Args:
+        images: List of PIL Image objects
+        client: OpenAI client
+        system_prompt: System message for the API
+        user_instructions: Instructions for the user message
+        model: OpenAI model to use (default: gpt-4o)
+    
+    Returns:
+        str: Combined description from the API
+    """
+    # Convert images to base64
+    image_messages = []
+    for img in images:
+        buffered = BytesIO()
+        img.save(buffered, format="JPEG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        image_messages.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{img_base64}"
+            }
+        })
+    
+    # Create messages with all images
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": user_instructions
+                },
+                *image_messages  # Unpack all image messages
+            ]
+        }
+    ]
+    
+    # Make single API call with all images
+    response = client.chat.completions.create(
+        model=model, 
+        messages=messages,
+        max_completion_tokens=2000
+    )
+    
+    return response.choices[0].message.content
+
+
+with image_description_col:
+    st.markdown("#### ✍️ Amazon Writing Assistant")
+
+    with st.expander("Image Upload"):
+        uploaded_images = st.file_uploader(
+            "Upload multiple product photos",
+            type=["jpg", "jpeg", "png"],
+            key="uploaded_images_multiple",
+            accept_multiple_files=True, 
+            on_change=sync_photo_results
+        )
+
+        if uploaded_images:
+            st.session_state['uploaded_images'] = load_images(uploaded_images)
+            
+            # Create tab names: image_1, image_2, ...
+            tab_names = [f"Image {i+1}" for i in range(len(st.session_state['uploaded_images']))]
+
+            tabs = st.tabs(tab_names)
+
+            # Put each image into its own tab
+            for i, (tab, img) in enumerate(zip(tabs, st.session_state['uploaded_images'])):
+                with tab:
+                    st.image(img, caption=f"Image {i+1}", use_container_width=True)
+
+
+            if st.button("Generate product description"):
+                # Progress bar
+                progress = st.progress(0)
+
+                # Process all images in a single API call
+                result = process_multiple_images(
+                    st.session_state['uploaded_images'],
+                    client,
+                    "You are an expert at extracting product specifications and features from product images for Amazon listings",
+                    image_specs_instructions
+                )
+
+                # Store result in session state
+                st.session_state['product_specs'] = result
+                
+                # Complete progress
+                progress.progress(1.0)
+
+
+    # Initialize product_specs in session_state if it doesn't exist
+    if 'product_specs' not in st.session_state:
+        st.session_state['product_specs'] = ""
+
+    # Bind text_area to session_state
+    facts_col, _, keyword_col = st.columns([7, 0.5, 6])
+    with facts_col:
+        # Specs
+        st.text_area(
+            "Specs",
+            key = 'product_specs',
+            height=240
+        )
+
+        # Product URLs
+        for i in range(1, 4):
+            st.text_input(
+                f"Example {i}",
+                key=f"keyword_listing_url_{i}",
+                placeholder="https://www.amazon.com/..."
+            )
+
+    with keyword_col:
+        st.text_area("Keywords", height=240, key='listing_bullet_keywords')
+
+
+    # Generate listing!
+    st.write("")
+    if st.button("Extract info"):
+        
+        # --- STEP 1: EXTRACT LISTING FROM URL ---
+        product_urls = [
+            st.session_state.get(f"keyword_listing_url_{i}", "").strip()
+            for i in range(1, 4)
+            if st.session_state.get(f"keyword_listing_url_{i}", "").strip()
+        ]
+
+        product_asins = [
+            asin for asin in 
+            (extract_amazon_asin(url) for url in product_urls)
+            if asin is not None
+        ]
+
+        bullet_labels = st.session_state['bullet_labels']
+        
+        st.session_state['product_listings_from_urls'] = bullet_labels[bullet_labels['ASIN'].isin(product_asins)]['bullet_points'].tolist()
+
+        # Check if product_listings is empty
+        if not st.session_state['product_listings_from_urls']:
+            st.session_state["listing_analysis"] = ""
+        else:
+            combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
+            listing_prompt = feature_summary_from_url_prompt_simple.format(listing=combined_listing)
+
+            with st.spinner("Analyzing listing..."):
+                st.session_state["listing_analysis"] = complete_phrase(
+                    client,
+                    listing_prompt,
+                    model='gpt-5.1-2025-11-13'
+                )
+
+        # --- STEP 2: WRITE LISTING
+        
+        with st.spinner("Writing listing..."):
+            st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
+            generate_listing_prompt = listing_writer_instructions_gemini.format(
+                selected_product = selected_product,
+                product_specs = st.session_state['product_specs'],
+                keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
+                secondary_keywords = st.session_state['secondary_keywords'],
+                desirable_features =  st.session_state["listing_analysis"]
+            )
+
+            st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
+
+            start=time.time()
+            # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
+            #         model="gemini-3-flash-preview",
+            #         contents=generate_listing_prompt,
+            #         config=types.GenerateContentConfig(
+            #         thinking_config=types.ThinkingConfig(
+            #             thinking_level="MEDIUM" 
+            #         ),
+            #         temperature=0.2,
+            #                 )).text
+
+            # st.write(generate_listing_prompt)
+            
+            st.session_state["ai_listing_draft"] = complete_phrase(
+                                client,
+                                generate_listing_prompt,
+                                model='gpt-5.1-2025-11-13'
+                            )
+            
+            end = time.time()
+            elapsed = end-start
+            st.write(f"Request took {elapsed:.2f} seconds")
+
+    if st.session_state["grammar_correct_search_terms"]:
+        st.write("#### Keywords")
+        st.write(st.session_state["grammar_correct_search_terms"])
+        
+    st.write("")
+    if st.session_state["listing_analysis"]:
+        num_reference_listings = len(st.session_state['product_listings_from_urls'])
+        st.write(f"##### Info from URLs ({num_reference_listings})")
+        st.write(st.session_state["listing_analysis"])
+
+    # Display results!
+    def keyword_markdown(title, keyword_set):
+        if not keyword_set:
+            st.markdown(f"**{title}:** None ✅")
+            return
+
+        kw_string = ", ".join(sorted(keyword_set))
+        st.markdown(f"**{title}:** {kw_string}")
+
+    def display_listing_interface(listing, keyword_count_df, all_keywords, total_keywords_unique, new_words_added = None):
+            st.write("")
+            st.write(listing) 
+            st.divider()
+
+            stats_col1, _, stats_col2 = st.columns([7, 3, 5])
+            with stats_col1:
+                
+                st.write(f"**Keywords provided**: {all_keywords}") 
+                st.write(f"**Unique keywords in listing**: {total_keywords_unique}")
+                if new_words_added:
+                    keyword_markdown("New keywords added", new_words_added)
+            
+            with stats_col2:
+                st.dataframe(keyword_count_df, hide_index=True, height = 176, width = 200)
+       
+# =====================================================
+# Keywords / Writing Assistant
+# =====================================================
+with ai_tools_col:
+
+    st.markdown("#### ")
+    with st.expander("Title and keywords"):
+        col1, _, col2, _ = st.columns([4.2, 0.36, 5, 0.1])
+
+        with col1:
+            st.markdown("##### Title generator")
+
+            # Text input for AND filtering (all words must be present)
+            search_phrase_and = st.text_input(
+                "Must contain ALL these words",
+                placeholder="Enter words (all must be present)...",
+                key="phrase_filter_and"
+            )
+            
+            # Text input for OR filtering (at least one word must be present)
+            search_phrase_or = st.text_input(
+                "Must contain AT LEAST ONE of these words",
+                placeholder="Enter words (any can be present)...",
+                key="phrase_filter_or"
+            )
+            
+            # Apply filter based on inputs
+            if (search_phrase_and and search_phrase_and.strip()) or (search_phrase_or and search_phrase_or.strip()):
+                # Filter the dataframe when there's input in either field
+                title_filtered_df = filter_by_phrase_final(
+                    keyword_phrases,
+                    input_phrase_and=search_phrase_and if search_phrase_and.strip() else None,
+                    input_phrase_or=search_phrase_or if search_phrase_or.strip() else None
+                )
+                title_filtered_df = title_filtered_df.sort_values(by = 'monthly_searches', ascending = False)
+                st.dataframe(title_filtered_df, height=352, hide_index=True)
+            else:
+                st.dataframe(keyword_phrases, height=352, hide_index=True)
+            
+            # User enters keywords 
+            st.text_area(
+                "Keywords",
+                placeholder="e.g. picture, frame, gold, ornate",
+                key="input_keywords",
+                height=240
+            )
+
+            user_input = st.session_state.get("input_keywords", "").strip()
+
+            def generate_product_title():
+                user_input = st.session_state.get("input_keywords", "").strip()
+                if not user_input:
+                    st.session_state["title_result"] = ""
+                    return
+                
+                # Extract singular words + top phrases from user input
+                search_terms = user_input.split("\n")
+                sorted_search_terms = sort_search_terms(search_terms, keyword_phrases)
+                primary_keywords = extract_unique_words(sorted_search_terms)
+                top_search_terms = get_top_n_search_terms(sorted_search_terms)
+
+                # Writing the prompt
+                title_prompt = title_generator_prompt_gemini.format(
+                                                    selected_product=selected_product,
+                                                    top_search_terms=", ".join(top_search_terms),
+                                                    primary_keywords=", ".join(primary_keywords),
+                                                    secondary_keywords=st.session_state['secondary_keywords'],
+                                                    example_product_titles=example_product_titles
+                                                )
+
+                start = time.time()
+                result = None
+
+                # --- Gemini attempts ---
+                for attempt in range(1, 4):
+                    try:
+                        if attempt > 1:
+                            wait = (attempt - 1) * 10
+                            st.warning(f"Retrying gemini-3-flash-preview (attempt {attempt})...")
+                            time.sleep(wait)
+
+                        result = gemini_client.models.generate_content(
+                            model="gemini-3-flash-preview",
+                            contents=title_prompt,
+                            config=types.GenerateContentConfig(
+                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                max_output_tokens=100,
+                                temperature=0.2,
+                            )
+                        ).text
+                        break  # Success — exit retry loop
+
+                    except Exception as e:
+                        if attempt == 3:
+                            st.warning(f"gemini-3-flash-preview failed after 3 attempts: {e}")
+
+                # --- GPT-5.1 fallback ---
+                if result is None:
+                    for attempt in range(1, 4):
+                        try:
+                            if attempt > 1:
+                                wait = (attempt - 1) * 10
+                                st.warning(f"Retrying gpt-5.1 (attempt {attempt})...")
+                                time.sleep(wait)
+
+                            result = complete_phrase(
+                                client,
+                                title_prompt,
+                                model='gpt-5.1'
+                            )
+                            break  # Success — exit retry loop
+
+                        except Exception as e:
+                            if attempt == 3:
+                                st.error("Unfortunately, both Gemini and ChatGPT failed at this time. Please try again later.")
+
+                if result is not None:
+                    st.session_state["title_result"] = result
+
+                end = time.time()
+                elapsed = end - start
+                st.write(f"Request took {elapsed:.2f} seconds")
+
+            st.write("")
+            
+            if st.button("Generate title"):
+                with st.spinner("Generating title..."):
+                    generate_product_title()
+        
+        with col2:
+            # Keyword prase
+            st.write("#####")
+            for i in range(8):
+                st.write('')
+            st.markdown('Single keywords')
+            st.dataframe(bullet_keywords, height = 350, hide_index=True)
+
+            # Display title
+            if st.session_state["title_result"]:
+                st.write("")
+                st.write("")
+                st.markdown(f"**{st.session_state["title_result"]}**")
+
+
+            # st.text_area("Final title", key = 'finished_product_title')
+
+    if st.session_state["title_result"]:
+        st.write("")
+        st.write("")
+        st.markdown(f"##### {st.session_state["title_result"]}")
+
+    st.write("")
+    if st.session_state["ai_listing_draft"]:
+        # st.write("##### Listing draft")
+        st.write(st.session_state["ai_listing_draft"])
+
+        # Logic to show the button only if both states are populated
+    if st.session_state.get("title_result") and st.session_state.get("ai_listing_draft"):
+        
+        def generate_docx():
+            doc = Document()
+            
+            # 1. Add and Format the Title (Source 1)
+            # We create the heading, then access its font to change the color to black
+            title_text = st.session_state["title_result"].replace("**", "")
+            heading = doc.add_heading(level=1)
+            run = heading.add_run(title_text)
+            run.font.color.rgb = RGBColor(0, 0, 0)  # Sets color to Black
+            
+            doc.add_paragraph("")  # spacing
+
+            # 2. Process the Listing Content (Sources 2-6)
+            content = st.session_state["ai_listing_draft"]
+            for line in content.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                clean_line = line.replace("**", "")
+                
+                # Handle bullet points (common in listing drafts)
+                if line.startswith(('-', '*')):
+                    clean_line = clean_line.lstrip('-* ').strip()
+                    p = doc.add_paragraph(style='List Bullet')
+                else:
+                    p = doc.add_paragraph()
+
+                # Format subheadings (e.g., "Regal Vintage Style:") as Bold
+                if ":" in clean_line:
+                    subheading, description = clean_line.split(":", 1)
+                    
+                    # Add the bold subheading
+                    bold_run = p.add_run(subheading + ":")
+                    bold_run.bold = True
+                    
+                    # Add the remaining text normally
+                    p.add_run(description)
+                else:
+                    p.add_run(clean_line)
+            
+            buffer = BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            return buffer
+
+        # Download Button
+        st.write("")
+        st.write("")
+        st.download_button(
+            label="Download Result",
+            data=generate_docx(),
+            file_name="Listing_Final.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        
