@@ -86,7 +86,7 @@ def check_authentication():
         return False  # Not authenticated - will block UI display
     else:
         # User is authenticated, show welcome message
-        st.sidebar.success(f"✅ Welcome {st.session_state['current_user']}!")
+        st.sidebar.success(f"✅ 欢饮 {st.session_state['current_user']}!")
         if st.sidebar.button("Logout"):
             st.session_state['authenticated'] = False
             st.session_state.pop('current_user', None)
