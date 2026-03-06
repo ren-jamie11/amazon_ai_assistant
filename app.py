@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 
 # --- AUTHENTICATION ---
+
 def check_authentication():
     """Check if user is authenticated, show login if not."""
     if 'authenticated' not in st.session_state:
@@ -42,7 +43,7 @@ def check_authentication():
                 else:
                     st.error("❌ Invalid password. Please try again.")
         
-        st.stop()  # Prevent rest of app from running
+        return False  # Not authenticated - will block UI display
     else:
         # User is authenticated, show welcome message
         st.sidebar.success(f"✅ Welcome {st.session_state['current_user']}!")
@@ -50,6 +51,7 @@ def check_authentication():
             st.session_state['authenticated'] = False
             st.session_state.pop('current_user', None)
             st.rerun()
+        return True  # Authenticated - allow UI display
 
 def concatenate_input():
     full_listing = ""
@@ -122,25 +124,18 @@ def initialize_product_data(product_name):
 # --- Streamlit Setup ---
 st.set_page_config(page_title="Image Keyword Filter", layout="wide")
 
-# Check authentication first
-check_authentication()
-
-st.title("Amazon Listing Dashboard")
-
-# Get available products
+# Get available products (loads in background even if not authenticated)
 available_products = get_available_products()
 
 if not available_products:
     st.error("No product directories found in data_files/")
     st.stop()
 
-# Product selector
-selected_product = st.selectbox(
-    "Select Product Type",
-    options=available_products,
-    key="product_selector",
-    width = 180
-)
+# Initialize default product if not set
+if "product_selector" not in st.session_state:
+    st.session_state["product_selector"] = available_products[0]
+
+selected_product = st.session_state["product_selector"]
 
 # Widget keys — must be set to "" so Streamlit re-renders them empty
 _WIDGET_KEYS_TO_CLEAR = [
@@ -184,16 +179,15 @@ def _clear_product_state():
     for key in _STATE_KEYS_TO_DELETE:
         st.session_state.pop(key, None)
 
-# Initialize or update data when product changes
+# Initialize or update data when product changes (happens in background)
 if "current_product" not in st.session_state or st.session_state["current_product"] != selected_product:
-    with st.spinner(f"Loading {selected_product} data..."):
-        _clear_product_state()
-        initialize_product_data(selected_product)
-        st.session_state["current_product"] = selected_product
+    _clear_product_state()
+    initialize_product_data(selected_product)
+    st.session_state["current_product"] = selected_product
 
-        # Initialize displayed_images with first 24 rows
-        initial_df = st.session_state['bullet_labels']
-        st.session_state["displayed_images"] = initial_df.head(24) if len(initial_df) > 24 else initial_df.copy()
+    # Initialize displayed_images with first 24 rows
+    initial_df = st.session_state['bullet_labels']
+    st.session_state["displayed_images"] = initial_df.head(24) if len(initial_df) > 24 else initial_df.copy()
 
 # --- Access session state variables (same names as before) ---
 label_dict = st.session_state['label_dict']
@@ -206,6 +200,21 @@ example_product_titles = "\n\n ".join(st.session_state['bullet_labels'].product_
 
 # Apply colorization to diagram
 bullet_diagram = colorize_df(bullet_diagram)
+
+# Check authentication - only blocks UI display, not data loading
+if not check_authentication():
+    st.stop()  # Stop here if not authenticated - but data is already loaded!
+
+# --- UI STARTS HERE (only shown if authenticated) ---
+st.title("Amazon Listing Dashboard")
+
+# Product selector (now shown in UI)
+selected_product = st.selectbox(
+    "Select Product Type",
+    options=available_products,
+    key="product_selector",
+    width = 180
+)
 
 st.write()
  
@@ -278,7 +287,6 @@ with st.expander("Search for examples"):
 
                     # Extract bullet
                     full_listing = to_str(row.get("bullet_points", ""))
-                    # specific_bullet = extract_first_paragraph_by_phrase(full_listing, st.session_state["label_input"])
 
                     st.write(f"Monthly Sales: {to_str(row.get("monthly_sales", []))}")
                     st.markdown(
@@ -303,9 +311,6 @@ with st.expander("Search for examples"):
                 except (FileNotFoundError, UnidentifiedImageError, OSError):
                     st.warning(f"⚠️ Could not load image: {img_path}")
            
-
-
-# NOTES: Instead of total sales, maybe also do number of listings who use its
 
 # ---------------------------------------
 #           OPENAI PHOTO FEATURE
@@ -824,3 +829,4 @@ with ai_tools_col:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
         
+ 
