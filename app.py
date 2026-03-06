@@ -68,14 +68,14 @@ def check_authentication():
         st.session_state['authenticated'] = False
     
     if not st.session_state['authenticated']:
-        st.markdown("### 🔐 Login Required")
+        st.markdown("### 👋 欢迎光临")
         st.write("您好！请输入密码，开始管理您的亚马逊商品 ✨")
         
         password = st.text_input("Password", type="password", key="login_password")
         
         col1, col2, col3 = st.columns([1, 1, 2])
         with col1:
-            if st.button("Login", type="primary"):
+            if st.button("登录", type="primary"):
                 if password in USER_PASSWORDS:
                     st.session_state['authenticated'] = True
                     st.session_state['current_user'] = USER_PASSWORDS[password]
