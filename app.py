@@ -17,8 +17,6 @@ from google import genai
 
 from google.genai import types
 
-
-
 import json
 from pathlib import Path
 
