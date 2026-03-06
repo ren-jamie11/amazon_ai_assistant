@@ -20,46 +20,6 @@ from google.genai import types
 import json
 from pathlib import Path
 
-import gspread
-from google.oauth2.service_account import Credentials
-
-# --- GOOGLE SHEETS LOGGING ---
-
-_GS_SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
-]
-
-@st.cache_resource
-def get_log_sheet():
-    """Return the first worksheet of the AmazonListingAI Google Sheet."""
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=_GS_SCOPES
-    )
-    client = gspread.authorize(creds)
-    sheet = client.open(st.secrets["sheet"]["name"]).sheet1
-    # Add header row if sheet is empty
-    if sheet.row_count == 0 or sheet.cell(1, 1).value != "timestamp":
-        sheet.insert_row(
-            ["timestamp", "user", "function_name", "input_prompt", "output"],
-            index=1
-        )
-    return sheet
-
-def log_to_sheets(function_name: str, input_prompt: str, output: str):
-    """Append a log row to the Google Sheet. Silently skips on error."""
-    try:
-        sheet = get_log_sheet()
-        sheet.append_row([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            st.session_state.get("current_user", "unknown"),
-            function_name,
-            input_prompt,
-            output,
-        ])
-    except Exception as e:
-        st.warning(f"⚠️ Logging failed: {e}")
-
 # --- AUTHENTICATION ---
 
 def check_authentication():
@@ -581,11 +541,6 @@ with image_description_col:
                     listing_prompt,
                     model='gpt-5.1-2025-11-13'
                 )
-                log_to_sheets(
-                    function_name="analyze_listing",
-                    input_prompt=listing_prompt,
-                    output=st.session_state["listing_analysis"],
-                )
 
         # --- STEP 2: WRITE LISTING
         
@@ -618,12 +573,6 @@ with image_description_col:
                                 client,
                                 generate_listing_prompt,
                                 model='gpt-5.1-2025-11-13'
-                            )
-                            
-            log_to_sheets(
-                                function_name="write_listing_draft",
-                                input_prompt=generate_listing_prompt,
-                                output=st.session_state["ai_listing_draft"],
                             )
             
             end = time.time()
@@ -783,11 +732,6 @@ with ai_tools_col:
 
                 if result is not None:
                     st.session_state["title_result"] = result
-                    log_to_sheets(
-                        function_name="generate_title",
-                        input_prompt=title_prompt,
-                        output=result,
-                    )
 
                 end = time.time()
                 elapsed = end - start
@@ -884,3 +828,5 @@ with ai_tools_col:
             file_name="Listing_Final.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+        
+ 
