@@ -1,8 +1,10 @@
+import streamlit as st
+
 USER_PASSWORDS = {
-    "dragon2000": "Jamie",
-    "lilian08": "龙哥",
-    "lilian18": "Yana",
-    "lilian28": "郭嘉俊",
-    "lilian38": "Abby",
-    "lilian68": "小桃",
+    st.secrets["PASS_JAMIE"]: "Jamie",
+    st.secrets["PASS_JESSE"]: "龙哥",
+    st.secrets["PASS_YANA"]: "Yana",
+    st.secrets["PASS_GUO"]: "郭嘉俊",
+    st.secrets["PASS_ABBY"]: "Abby",
+    st.secrets["PASS_TAO"]: "小桃",
 }
