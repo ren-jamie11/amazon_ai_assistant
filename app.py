@@ -69,7 +69,7 @@ def check_authentication():
     
     if not st.session_state['authenticated']:
         st.markdown("### 🔐 Login Required")
-        st.write("Please enter your password to access the Amazon Listing Dashboard")
+        st.write("您好！请输入密码，开始管理您的亚马逊商品 ✨")
         
         password = st.text_input("Password", type="password", key="login_password")
         
