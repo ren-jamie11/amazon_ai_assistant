@@ -30,8 +30,6 @@ plant
 pampas
 grass
 candle
-holder
-container
 party
 wedding
 birthday
