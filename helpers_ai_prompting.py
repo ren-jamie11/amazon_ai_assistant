@@ -215,7 +215,7 @@ Example template: 8x10 Picture Frame Gold, Vintage Photo Display with Tabletop S
 
 Do not hallucinate materials, dimensions, or colors not explicitly provided.
 Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
-Use at most 1-2 commas.
+Ensure attributes (e.g. microwave safe, UV-protective) modify the main product, not individual components 
 
 Example product titles:
 
