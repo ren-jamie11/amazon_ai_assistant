@@ -150,17 +150,67 @@ def complete_phrase(client,
     return response.choices[0].message.content.strip()
 
 
+# title_generator_prompt_gemini = """
+# You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
+# I will provide you with 1-2 top search term as well as a list of primary and secondary keywords, 
+# and you are to write a professional Amazon-ready product title of around 190 characters with space.
+# Use singular tense (e.g. plant instead of plants).
+
+# Structure: [Product Name] + comma + [Core Product Features] + for +  [Occassions and Settings]
+# - Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
+# - Primary Keywords: Place primary keywords and dimensions/numbers near front of title
+# - Secondary keywords:  Include 3-4 setting/occasion-related keywords (not too many). that fit the context of the product.
+#   See secondary keyword list and example product titles for reference.
+
+# Do not hallucinate materials, dimensions, or colors not explicitly provided.
+# Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
+# Use at most 1-2 commas.
+
+# Example product titles:
+
+# Ceramic Flower Vase, 12.5" Large Rustic Farmhouse Vases Home Decor, Tall Pottery Decorative Pampas Vase for Table Living Room Entryway Bathroom Kitchen
+
+# Faux Magnolia Branches, 22 Inches Artificial Magnolia Leaves Stems Real Touch Faux Greenery for Home Office Room Table Vase Farmhouse Decor  
+
+# Constraints:
+# - Product title must be no more than 200 characters with spaces (strict limit)
+# - Do NOT include the same numerical keyword more than 1 time (eg 5x7, 5 x 7, 10inch)
+# - No brand names
+
+# INPUT:
+
+# Top search terms:
+# {top_search_terms}
+
+# Primary Keywords
+# {primary_keywords}
+
+# Secondary Keywords:
+# {secondary_keywords}
+
+# Your output (output only the title and nothing else):
+
+# """
+
 title_generator_prompt_gemini = """
 You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
 I will provide you with 1-2 top search term as well as a list of primary and secondary keywords, 
-and you are to write a professional Amazon-ready product title of around 190 characters with space.
-Use singular tense (e.g. plant instead of plants).
+and you are to write a professional Amazon-ready product title.
+Use singular tense (e.g. plant instead of plants). Length must be AT LEAST 160 chars and NO MORE THAN 200 chars with spaces.
 
-Structure: [Product Name] + comma + [Core Product Features] + for +  [Occassions and Settings]
+Strictly follow this structure:
+
+a) If product component keywords present (e.g. vase: handle, pot: drainage holes, picture frame: tabletop stand):  
+[Product Name] + , + [Primary Keywords + Dimensions] + with + [Core Features/Components] + , + [Product-related noun phrase] + for + [Occasions/Settings]
+b) Otherwise: [Product Name] + , + [Primary Keywords + Dimensions]  + , +  [Product-related noun phrase] + for + [Occasions/Settings]
+
 - Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
 - Primary Keywords: Place primary keywords and dimensions/numbers near front of title
+- Core features/components: Include component-related keywords ONLY if provided (e.g. vase with handle). Otherwise, no need.
 - Secondary keywords:  Include 3-4 setting/occasion-related keywords (not too many). that fit the context of the product.
   See secondary keyword list and example product titles for reference.
+
+Example template: 8x10 Picture Frame Gold, Vintage Photo Display with Tabletop Stand and Wall Hanging Mounting, Decorative Frame for Home Office Gallery Wedding Gift Decor
 
 Do not hallucinate materials, dimensions, or colors not explicitly provided.
 Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
@@ -188,6 +238,7 @@ Primary Keywords
 Secondary Keywords:
 {secondary_keywords}
 
+Make sure product title is strictly between 160-200 chars with spaces. Otherwise, add/trim keywords.
 Your output (output only the title and nothing else):
 
 """
