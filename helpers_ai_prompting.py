@@ -196,12 +196,13 @@ title_generator_prompt_gemini = """
 You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
 I will provide you with 1-2 top search term as well as a list of primary and secondary keywords, 
 and you are to write a professional Amazon-ready product title.
-Use singular tense (e.g. plant instead of plants). Length must be AT LEAST 160 chars and NO MORE THAN 200 chars with spaces.
+Use singular tense (e.g. plant instead of plants). Length must be AT LEAST 150 chars and NO MORE THAN 190 chars with spaces.
 
 Strictly follow this structure:
 
 a) If product component keywords present (e.g. vase: handle, pot: drainage holes, picture frame: tabletop stand):  
 [Product Name] + , + [Primary Keywords + Dimensions] + with + [Core Features/Components] + , + [Product-related noun phrase] + for + [Occasions/Settings]
+
 b) Otherwise: [Product Name] + , + [Primary Keywords + Dimensions]  + , +  [Product-related noun phrase] + for + [Occasions/Settings]
 
 - Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
@@ -223,9 +224,9 @@ Ceramic Flower Vase, 12.5" Large Rustic Farmhouse Vases Home Decor, Tall Pottery
 Faux Magnolia Branches, 22 Inches Artificial Magnolia Leaves Stems Real Touch Faux Greenery for Home Office Room Table Vase Farmhouse Decor  
 
 Constraints:
-- Product title must be no more than 200 characters with spaces (strict limit)
-- Do NOT include the same numerical keyword more than 1 time (eg 5x7, 5 x 7, 10inch)
+- Do NOT include color, dimensions, style-related keywords more than 1 time (eg 5x7, 5 x 7, 10inch, blue, striped, rustic, minimalist)
 - No brand names
+- You may ONLY use 2 commas (1st comma after product name, 2nd comma between [Primary Keywords + Dimension] and [Product-related noun phrase])
 
 INPUT:
 
@@ -238,7 +239,7 @@ Primary Keywords
 Secondary Keywords:
 {secondary_keywords}
 
-Make sure product title is strictly between 160-200 chars with spaces. Otherwise, add/trim keywords.
+Make sure product title is strictly between 150-190 chars with spaces. 
 Your output (output only the title and nothing else):
 
 """
