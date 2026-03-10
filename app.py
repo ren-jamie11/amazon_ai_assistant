@@ -851,7 +851,7 @@ with ai_tools_col:
                     height=240, width= 360
                 )
             
-            if st.button("Generate title"):
+            if st.button("整理关键词"):
                 st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
                 st.write(st.session_state['cleaned_keywords'])
 
