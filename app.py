@@ -407,6 +407,7 @@ st.session_state.setdefault("default_tab", "Keywords & Title")
 st.session_state.setdefault("pre_optimized_listing", False)
 st.session_state.setdefault("finished_product_title", "")
 st.session_state.setdefault("fixed_keywords", "")
+st.session_state.setdefault("cleaned_keywords", "")
 st.session_state.setdefault("grammar_correct_search_terms", "")
 st.session_state.setdefault("product_listings_from_urls", [])
 st.session_state.setdefault("product_specs", "")
@@ -850,9 +851,9 @@ with ai_tools_col:
                     height=240, width= 360
                 )
             
-
-            st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
-            st.write(st.session_state['cleaned_keywords'])
+            if st.button("Generate title"):
+                st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
+                st.write(st.session_state['cleaned_keywords'])
 
 
     if st.session_state["title_result"]:
