@@ -619,6 +619,22 @@ def extract_unique_words(search_terms, stop_words = STOP_WORDS):
     return unique_words
 
 
+def get_unique_words_from_string(text, max_chars=250):
+    cleaned = re.sub(r'[^\w\s]', '', text)
+    unique_words = extract_unique_words([cleaned])
+    
+    result = []
+    total_chars = 0
+    for word in unique_words:
+        # +1 for the space, except for the first word
+        word_len = len(word) + (1 if result else 0)
+        if total_chars + word_len > max_chars:
+            break
+        result.append(word)
+        total_chars += word_len
+    
+    return " ".join(result)
+
 
 def get_normalized_words(phrase, stop_words=STOP_WORDS):
     """

@@ -849,6 +849,10 @@ with ai_tools_col:
                     key="input_keywords_to_condense",
                     height=240, width= 360
                 )
+            
+
+            st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
+            st.write(st.session_state['cleaned_keywords'])
 
 
     if st.session_state["title_result"]:
