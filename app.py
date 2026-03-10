@@ -693,146 +693,150 @@ with ai_tools_col:
 
     st.markdown("#### ")
     with st.expander("Title and keywords"):
-        col1, _, col2, _ = st.columns([4.2, 0.36, 5, 0.1])
 
-        with col1:
-            st.markdown("##### Title generator")
+        title_tab, condensor_tab = st.tabs(["Title", "Condense keywords"])
+        with title_tab:
 
-            # Text input for AND filtering (all words must be present)
-            search_phrase_and = st.text_input(
-                "Must contain ALL these words",
-                placeholder="Enter words (all must be present)...",
-                key="phrase_filter_and"
-            )
-            
-            # Text input for OR filtering (at least one word must be present)
-            search_phrase_or = st.text_input(
-                "Must contain AT LEAST ONE of these words",
-                placeholder="Enter words (any can be present)...",
-                key="phrase_filter_or"
-            )
-            
-            # Apply filter based on inputs
-            if (search_phrase_and and search_phrase_and.strip()) or (search_phrase_or and search_phrase_or.strip()):
-                # Filter the dataframe when there's input in either field
-                title_filtered_df = filter_by_phrase_final(
-                    keyword_phrases,
-                    input_phrase_and=search_phrase_and if search_phrase_and.strip() else None,
-                    input_phrase_or=search_phrase_or if search_phrase_or.strip() else None
+            col1, _, col2, _ = st.columns([4.2, 0.36, 5, 0.1])
+
+            with col1:
+                st.markdown("##### Title generator")
+
+                # Text input for AND filtering (all words must be present)
+                search_phrase_and = st.text_input(
+                    "Must contain ALL these words",
+                    placeholder="Enter words (all must be present)...",
+                    key="phrase_filter_and"
                 )
-                title_filtered_df = title_filtered_df.sort_values(by = 'monthly_searches', ascending = False)
-                st.dataframe(title_filtered_df, height=352, hide_index=True)
-            else:
-                st.dataframe(keyword_phrases, height=352, hide_index=True)
-            
-            # User enters keywords 
-            st.text_area(
-                "Keywords",
-                placeholder="e.g. picture, frame, gold, ornate",
-                key="input_keywords",
-                height=240
-            )
-
-            user_input = st.session_state.get("input_keywords", "").strip()
-
-            def generate_product_title():
-                user_input = st.session_state.get("input_keywords", "").strip()
-                if not user_input:
-                    st.session_state["title_result"] = ""
-                    return
                 
-                # Extract singular words + top phrases from user input
-                search_terms = user_input.split("\n")
-                sorted_search_terms = sort_search_terms(search_terms, keyword_phrases)
-                primary_keywords = extract_unique_words(sorted_search_terms)
-                top_search_terms = get_top_n_search_terms(sorted_search_terms)
+                # Text input for OR filtering (at least one word must be present)
+                search_phrase_or = st.text_input(
+                    "Must contain AT LEAST ONE of these words",
+                    placeholder="Enter words (any can be present)...",
+                    key="phrase_filter_or"
+                )
+                
+                # Apply filter based on inputs
+                if (search_phrase_and and search_phrase_and.strip()) or (search_phrase_or and search_phrase_or.strip()):
+                    # Filter the dataframe when there's input in either field
+                    title_filtered_df = filter_by_phrase_final(
+                        keyword_phrases,
+                        input_phrase_and=search_phrase_and if search_phrase_and.strip() else None,
+                        input_phrase_or=search_phrase_or if search_phrase_or.strip() else None
+                    )
+                    title_filtered_df = title_filtered_df.sort_values(by = 'monthly_searches', ascending = False)
+                    st.dataframe(title_filtered_df, height=352, hide_index=True)
+                else:
+                    st.dataframe(keyword_phrases, height=352, hide_index=True)
+                
+                # User enters keywords 
+                st.text_area(
+                    "Keywords",
+                    placeholder="e.g. picture, frame, gold, ornate",
+                    key="input_keywords",
+                    height=240
+                )
 
-                # Writing the prompt
-                title_prompt = title_generator_prompt_gemini.format(
-                                                    selected_product=selected_product,
-                                                    top_search_terms=", ".join(top_search_terms),
-                                                    primary_keywords=", ".join(primary_keywords),
-                                                    secondary_keywords=st.session_state['secondary_keywords'],
-                                                    example_product_titles=example_product_titles
-                                                )
+                user_input = st.session_state.get("input_keywords", "").strip()
 
-                start = time.time()
-                result = None
+                def generate_product_title():
+                    user_input = st.session_state.get("input_keywords", "").strip()
+                    if not user_input:
+                        st.session_state["title_result"] = ""
+                        return
+                    
+                    # Extract singular words + top phrases from user input
+                    search_terms = user_input.split("\n")
+                    sorted_search_terms = sort_search_terms(search_terms, keyword_phrases)
+                    primary_keywords = extract_unique_words(sorted_search_terms)
+                    top_search_terms = get_top_n_search_terms(sorted_search_terms)
 
-                # --- Gemini attempts ---
-                for attempt in range(1, 4):
-                    try:
-                        if attempt > 1:
-                            wait = (attempt - 1) * 10
-                            st.warning(f"Retrying gemini-3-flash-preview (attempt {attempt})...")
-                            time.sleep(wait)
+                    # Writing the prompt
+                    title_prompt = title_generator_prompt_gemini.format(
+                                                        selected_product=selected_product,
+                                                        top_search_terms=", ".join(top_search_terms),
+                                                        primary_keywords=", ".join(primary_keywords),
+                                                        secondary_keywords=st.session_state['secondary_keywords'],
+                                                        example_product_titles=example_product_titles
+                                                    )
 
-                        result = gemini_client.models.generate_content(
-                            model="gemini-3-flash-preview",
-                            contents=title_prompt,
-                            config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
-                                max_output_tokens=100,
-                                temperature=0.2,
-                            )
-                        ).text
-                        break  # Success — exit retry loop
+                    start = time.time()
+                    result = None
 
-                    except Exception as e:
-                        if attempt == 3:
-                            st.warning(f"gemini-3-flash-preview failed after 3 attempts: {e}")
-
-                # --- GPT-5.1 fallback ---
-                if result is None:
+                    # --- Gemini attempts ---
                     for attempt in range(1, 4):
                         try:
                             if attempt > 1:
                                 wait = (attempt - 1) * 10
-                                st.warning(f"Retrying gpt-5.1 (attempt {attempt})...")
+                                st.warning(f"Retrying gemini-3-flash-preview (attempt {attempt})...")
                                 time.sleep(wait)
 
-                            result = complete_phrase(
-                                client,
-                                title_prompt,
-                                model='gpt-5.1'
-                            )
+                            result = gemini_client.models.generate_content(
+                                model="gemini-3-flash-preview",
+                                contents=title_prompt,
+                                config=types.GenerateContentConfig(
+                                    thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                    max_output_tokens=100,
+                                    temperature=0.2,
+                                )
+                            ).text
                             break  # Success — exit retry loop
 
                         except Exception as e:
                             if attempt == 3:
-                                st.error("Unfortunately, both Gemini and ChatGPT failed at this time. Please try again later.")
+                                st.warning(f"gemini-3-flash-preview failed after 3 attempts: {e}")
 
-                if result is not None:
-                    st.session_state["title_result"] = result
-                    log_to_sheets(
-                        function_name="generate_title",
-                        input_prompt=title_prompt,
-                        output=result,
-                    )
+                    # --- GPT-5.1 fallback ---
+                    if result is None:
+                        for attempt in range(1, 4):
+                            try:
+                                if attempt > 1:
+                                    wait = (attempt - 1) * 10
+                                    st.warning(f"Retrying gpt-5.1 (attempt {attempt})...")
+                                    time.sleep(wait)
 
-                end = time.time()
-                elapsed = end - start
-                st.write(f"Request took {elapsed:.2f} seconds")
+                                result = complete_phrase(
+                                    client,
+                                    title_prompt,
+                                    model='gpt-5.1'
+                                )
+                                break  # Success — exit retry loop
 
-            st.write("")
+                            except Exception as e:
+                                if attempt == 3:
+                                    st.error("Unfortunately, both Gemini and ChatGPT failed at this time. Please try again later.")
+
+                    if result is not None:
+                        st.session_state["title_result"] = result
+                        log_to_sheets(
+                            function_name="generate_title",
+                            input_prompt=title_prompt,
+                            output=result,
+                        )
+
+                    end = time.time()
+                    elapsed = end - start
+                    st.write(f"Request took {elapsed:.2f} seconds")
+
+                st.write("")
+                
+                if st.button("Generate title"):
+                    with st.spinner("Generating title..."):
+                        generate_product_title()
             
-            if st.button("Generate title"):
-                with st.spinner("Generating title..."):
-                    generate_product_title()
-        
-        with col2:
-            # Keyword prase
-            st.write("#####")
-            for i in range(8):
-                st.write('')
-            st.markdown('Single keywords')
-            st.dataframe(bullet_keywords, height = 350, hide_index=True)
+            with col2:
+                # Keyword prase
+                st.write("#####")
+                for i in range(8):
+                    st.write('')
+                st.markdown('Single keywords')
+                st.dataframe(bullet_keywords, height = 350, hide_index=True)
 
-            # Display title
-            if st.session_state["title_result"]:
-                st.write("")
-                st.write("")
-                st.markdown(f"**{st.session_state["title_result"]}**")
+                # Display title
+                if st.session_state["title_result"]:
+                    st.write("")
+                    st.write("")
+                    st.markdown(f"**{st.session_state["title_result"]}**")
 
 
             # st.text_area("Final title", key = 'finished_product_title')
