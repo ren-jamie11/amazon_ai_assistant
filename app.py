@@ -847,7 +847,7 @@ with ai_tools_col:
                     "Keywords",
                     placeholder="e.g. picture, frame, gold, ornate",
                     key="input_keywords_to_condense",
-                    height=240
+                    height=240, width= 360
                 )
 
 
