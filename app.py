@@ -135,10 +135,10 @@ def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, 
     
     return res
 
-def initialize_product_data(product_name):
+def initialize_product_data(product_name, subcategory):
     """Initialize or update all session state variables for a product."""
     # Load raw data
-    data, secondary_keywords = load_product_data(product_name)
+    data, secondary_keywords = load_product_data(product_name, subcategory)
     
     # Update session state
     st.session_state['bullet_clusters'] = data['bullet_clusters']
@@ -176,6 +176,19 @@ if "product_selector" not in st.session_state:
     st.session_state["product_selector"] = available_products[0]
 
 selected_product = st.session_state["product_selector"]
+
+# Get subcategories for the selected product and initialize default
+available_subcategories = get_product_subcategories(selected_product)
+
+if not available_subcategories:
+    st.error(f"No subcategory directories found in data_files/{selected_product}/")
+    st.stop()
+
+if "subcategory_selector" not in st.session_state or st.session_state.get("_last_product_for_subcategory") != selected_product:
+    st.session_state["subcategory_selector"] = available_subcategories[0]
+    st.session_state["_last_product_for_subcategory"] = selected_product
+
+selected_subcategory = st.session_state["subcategory_selector"]
 
 # Widget keys — must be set to "" so Streamlit re-renders them empty
 _WIDGET_KEYS_TO_CLEAR = [
@@ -219,11 +232,12 @@ def _clear_product_state():
     for key in _STATE_KEYS_TO_DELETE:
         st.session_state.pop(key, None)
 
-# Initialize or update data when product changes (happens in background)
-if "current_product" not in st.session_state or st.session_state["current_product"] != selected_product:
+# Initialize or update data when product or subcategory changes (happens in background)
+_current_selection = f"{selected_product}|{selected_subcategory}"
+if "current_product" not in st.session_state or st.session_state["current_product"] != _current_selection:
     _clear_product_state()
-    initialize_product_data(selected_product)
-    st.session_state["current_product"] = selected_product
+    initialize_product_data(selected_product, selected_subcategory)
+    st.session_state["current_product"] = _current_selection
 
     # Initialize displayed_images with first 24 rows
     initial_df = st.session_state['bullet_labels']
@@ -248,13 +262,20 @@ if not check_authentication():
 # --- UI STARTS HERE (only shown if authenticated) ---
 st.title("Amazon Listing Dashboard")
 
-# Product selector (now shown in UI)
-selected_product = st.selectbox(
-    "Select Product Type",
-    options=available_products,
-    key="product_selector",
-    width = 180
-)
+# Product + subcategory selectors side by side
+_sel_col1, _sel_col2, _ = st.columns([2, 2, 6])
+with _sel_col1:
+    selected_product = st.selectbox(
+        "Select Product Type",
+        options=available_products,
+        key="product_selector",
+    )
+with _sel_col2:
+    selected_subcategory = st.selectbox(
+        "Select Subcategory",
+        options=available_subcategories,
+        key="subcategory_selector",
+    )
 
 st.write()
  

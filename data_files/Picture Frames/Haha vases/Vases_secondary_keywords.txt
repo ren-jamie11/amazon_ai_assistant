@@ -3,7 +3,6 @@ shelf
 bookshelf
 mantel
 wall
-hanging
 floor
 desk
 fireplace
@@ -27,7 +26,11 @@ centerpiece
 arrangement
 planter
 plant
+pampas
+grass
 candle
+holder
+container
 party
 wedding
 birthday

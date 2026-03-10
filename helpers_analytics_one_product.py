@@ -159,18 +159,11 @@ def get_available_products(data_dir="data_files"):
     data_path = Path(data_dir)
     if not data_path.exists():
         return []
-    return sorted([d.name for d in data_path.iterdir() if d.is_dir() and not d.name.endswith('checkpoints')])
+    return sorted([d.name for d in data_path.iterdir() if d.is_dir()])
 
-def get_product_subcategories(product_name, data_dir="data_files"):
-    """Get list of subcategory directories for a given product."""
+def load_product_data(product_name, data_dir="data_files"):
+    """Load all parquet files for a specific product by finding files with matching suffixes."""
     product_path = Path(data_dir) / product_name
-    if not product_path.exists():
-        return []
-    return sorted([d.name for d in product_path.iterdir() if d.is_dir() and not d.name.endswith('checkpoints')])
-
-def load_product_data(product_name, subcategory, data_dir="data_files"):
-    """Load all parquet files for a specific product subcategory by finding files with matching suffixes."""
-    product_path = Path(data_dir) / product_name / subcategory
     
     if not product_path.exists():
         raise FileNotFoundError(f"Product directory not found: {product_path}")
