@@ -695,6 +695,7 @@ with ai_tools_col:
     with st.expander("Title and keywords"):
 
         title_tab, condensor_tab = st.tabs(["Title", "Condense keywords"])
+        
         with title_tab:
 
             col1, _, col2, _ = st.columns([4.2, 0.36, 5, 0.1])
@@ -840,6 +841,15 @@ with ai_tools_col:
 
 
             # st.text_area("Final title", key = 'finished_product_title')
+        
+        with condensor_tab:
+            st.text_area(
+                    "Keywords",
+                    placeholder="e.g. picture, frame, gold, ornate",
+                    key="input_keywords_to_condense",
+                    height=240
+                )
+
 
     if st.session_state["title_result"]:
         st.write("")
