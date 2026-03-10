@@ -573,18 +573,18 @@ def sort_search_terms(search_terms, df, rank_by='monthly_searches'):
 
 
 
-def normalize_word(word):
+def normalize_word(word, plural = True):
     """
     Normalize a word for comparison:
     - Remove plural 's' (frames -> frame)
     """
     # Handle plurals: remove trailing 's' if word ends with 's'
-    if len(word) > 3 and word.endswith('s') and not word.endswith('ss'):
+    if plural and len(word) > 3 and word.endswith('s') and not word.endswith('ss'):
         return word[:-1]
     
     return word
 
-def extract_unique_words(search_terms, stop_words = STOP_WORDS):
+def extract_unique_words(search_terms, stop_words = STOP_WORDS, plural = True):
     """
     Extract unique words from search terms in order of first appearance.
     Handles plurals and format variations (e.g., 5x7, 5 x 7, 5  x 7).
@@ -609,7 +609,7 @@ def extract_unique_words(search_terms, stop_words = STOP_WORDS):
         for word in words:
             if word in stop_words:
                 continue
-            normalized = normalize_word(word)
+            normalized = normalize_word(word, plural = plural)
             
             # If we haven't seen this normalized form, add the original word
             if normalized not in seen_normalized:
@@ -619,9 +619,9 @@ def extract_unique_words(search_terms, stop_words = STOP_WORDS):
     return unique_words
 
 
-def get_unique_words_from_string(text, max_chars=250):
+def get_unique_words_from_string(text, max_chars=250, plural = False):
     cleaned = re.sub(r'[^\w\s]', '', text)
-    unique_words = extract_unique_words([cleaned])
+    unique_words = extract_unique_words([cleaned], plural = plural)
     
     result = []
     total_chars = 0
