@@ -706,15 +706,15 @@ with ai_tools_col:
 
                 # Text input for AND filtering (all words must be present)
                 search_phrase_and = st.text_input(
-                    "Must contain ALL these words",
-                    placeholder="Enter words (all must be present)...",
+                    "材质，尺寸，风格 etc.",
+                    placeholder="E.g. ceramic, 5x7, 16",
                     key="phrase_filter_and"
                 )
                 
                 # Text input for OR filtering (at least one word must be present)
                 search_phrase_or = st.text_input(
-                    "Must contain AT LEAST ONE of these words",
-                    placeholder="Enter words (any can be present)...",
+                    "产品种类",
+                    placeholder="E.g. single stem, frame, mug cup",
                     key="phrase_filter_or"
                 )
                 
