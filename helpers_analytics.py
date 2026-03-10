@@ -1,4 +1,5 @@
 import re
+import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -134,25 +135,6 @@ def filter_bullets_by_phrase(df, phrase):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- Helper Functions ---
 def get_available_products(data_dir="data_files"):
     """Get list of product directories in data_files."""
@@ -168,6 +150,7 @@ def get_product_subcategories(product_name, data_dir="data_files"):
         return []
     return sorted([d.name for d in product_path.iterdir() if d.is_dir() and not d.name.endswith('checkpoints')])
 
+@st.cache_data
 def load_product_data(product_name, subcategory, data_dir="data_files"):
     """Load all parquet files for a specific product subcategory by finding files with matching suffixes."""
     product_path = Path(data_dir) / product_name / subcategory
