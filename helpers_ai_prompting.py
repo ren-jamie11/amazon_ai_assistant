@@ -257,8 +257,6 @@ Constraints:
 """
 
 
-
-
 feature_summary_from_url_prompt_simple = """
 ROLE: You are an an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
 perform the following tasks:
@@ -348,6 +346,7 @@ Otherwise, include ALL of the desirable features accurately and precisely, stayi
 Your output: 
 """
 
+
 keyword_grammar_fix_prompt = """
 Reorder the following product keyword phrases so that adjectives and size descriptors 
 come BEFORE nouns. Maintain natural English word order where adjectives precede the 
@@ -370,6 +369,111 @@ Keywords to fix:
 {keyword_phrases}
 
 Return only the corrected keyword list, each keyword phrase separated by comma ","
+"""
+
+product_description_instructions = """
+You are an expert Amazon copywriter specializing in home decor products (artificial plants, flowers, picture frames, and similar items). Your task is to write a compelling, conversion-optimized product listing using only the provided inputs. You must demonstrate a deep understanding of why customers buy this type of product — the emotional drivers, lifestyle aspirations, and practical pain points — and let that understanding shape every sentence.
+
+=============================================================
+INPUTS
+=============================================================
+Product Specs:
+{product_specs}
+
+Keywords:
+{keywords}
+
+Desirable Features:
+{desirable_features}
+
+Bullet Point Listing:
+{bullet_point_listing}
+
+=============================================================
+CRITICAL RULE
+=============================================================
+Do not introduce any facts, claims, dimensions, or features not present in the inputs. Every descriptive claim must be grounded in the provided information.
+
+=============================================================
+OUTPUT STRUCTURE
+=============================================================
+You must follow this exact format. Do not add labels like "1a" or "FEATURE PARAGRAPH 1" anywhere in the output.
+
+---
+
+[Introductory paragraph — ~100 words]
+
+Write a vivid, emotionally resonant opening that makes the customer feel something. Paint a picture of the product in their home and life. Lead with the transformation or feeling the product delivers, not its specifications. Naturally incorporate 1-2 keywords without forcing them.
+
+---
+
+**[Feature 1 subheading]**
+
+[Feature 1 body — ~50 words, 1-2 sentences]
+
+The subheading must be 2-3 words, high-impact, and capture the aesthetic appeal of the product (e.g. "Timeless Elegant Design", "Lush Lifelike Finish"). Do NOT use the words "Aesthetic Appeal". The body describes the product's visual qualities in sensory, evocative language — what makes it look beautiful, lifelike, or sophisticated.
+
+---
+
+**[Feature 2 subheading]**
+
+[Feature 2 body — ~50 words, 1-2 sentences]
+
+The subheading must be 2-3 words, high-impact, and capture the functional value of the product (e.g. "Effortless Low Maintenance", "Built To Last"). Do NOT use the words "Functional Value". The body highlights what makes this product easy, practical, or worry-free to own and addresses common pain points (maintenance, durability, care). Frame benefits from the customer's perspective.
+
+Example body tone: "The faux gladiolus bring the refreshing look of spring indoors all year long without any watering, sunlight, or care — perfect for busy individuals, allergy sufferers, or anyone who desires flawless decor."
+
+---
+
+**[Feature 3 subheading]**
+
+[Feature 3 body — ~50 words, 1-2 sentences]
+
+The subheading must be 2-3 words, high-impact, and capture who this product is for or where it belongs (e.g. "Premium material", "Maintenance free").  The body names the settings, occasions, and types of people this product suits best. End with a subtle call to action or confidence-building close.
+
+Example body tone: "Whether styling a dining table centerpiece, elevating a wedding backdrop, or adding a cheerful accent to your office, these flowers offer effortless sophistication that never fades."
+
+---
+
+**Product Specifications**
+
+[4-8 bullet points]
+
+List all tangible product details pulled directly from the provided specs. Format each line as:
+- Label: Value
+Do not estimate or embellish any values.
+
+---
+
+**Kindly Note**
+
+[3 bullet points]
+
+Brief, friendly, practical notes that preempt common complaints and set accurate expectations. Cover: color variation due to lighting/photography, reshaping instructions for compressed items, and care/cleaning guidance. Tone: helpful and reassuring, not legalistic.
+
+=============================================================
+FORMATTING RULES
+=============================================================
+- The five section headers must appear exactly as written using markdown bold: **Kindly Note** and **Product Specifications**
+- The three feature subheadings must also be bolded using markdown bold: e.g. **Timeless Elegant Design**
+- Do not include any other bold text in the body copy
+- Do not number or label the feature sections (no "1a", "1b", "Feature 1", "AESTHETIC APPEAL", etc.)
+- Do not add any text outside of this structure
+
+=============================================================
+WRITING GUIDELINES
+=============================================================
+TONE: Warm, aspirational, and confident. Speak to someone who cares about their home and wants it to feel beautiful and effortless.
+
+KEYWORDS: Weave provided keywords naturally into the copy. Never stuff or repeat them awkwardly — SEO should be invisible to the reader.
+
+ACCURACY: Never invent specifications, dimensions, materials, or use cases. If a detail is not in the inputs, leave it out.
+
+SPECIFICITY: Vague filler phrases like "high quality" or "perfect for any home" add nothing. Replace them with concrete, sensory, or situational details drawn from the inputs.
+
+LENGTH DISCIPLINE: Respect the word count targets for each section. Tight, purposeful writing outperforms padding.
+
+CUSTOMER LENS: Before writing each section, ask yourself — what does this customer actually want, and what are they afraid of? Let the answer shape what you write.
 """
 
 

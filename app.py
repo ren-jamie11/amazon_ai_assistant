@@ -413,6 +413,7 @@ st.session_state.setdefault("product_listings_from_urls", [])
 st.session_state.setdefault("product_specs", "")
 st.session_state.setdefault("listing_analysis", "")
 st.session_state.setdefault("ai_listing_draft", "")
+st.session_state.setdefault("product_description_result", "")
 
 st.session_state.setdefault("uploaded_images", [])
 
@@ -865,6 +866,34 @@ with ai_tools_col:
     if st.session_state["ai_listing_draft"]:
         # st.write("##### Listing draft")
         st.write(st.session_state["ai_listing_draft"])
+
+        if st.button("Generate product description"):
+            primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
+            secondary_kw = st.session_state.get("secondary_keywords", "")
+            combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
+
+            description_prompt = product_description_instructions.format(
+                product_specs=st.session_state["product_specs"],
+                keywords=combined_keywords,
+                desirable_features=st.session_state["listing_analysis"],
+                bullet_point_listing=st.session_state["ai_listing_draft"],
+            )
+
+            with st.spinner("Generating product description..."):
+                st.session_state["product_description_result"] = complete_phrase(
+                    client,
+                    description_prompt,
+                    model='gpt-5.1-2025-11-13'
+                )
+                log_to_sheets(
+                    function_name="generate_product_description",
+                    input_prompt=description_prompt,
+                    output=st.session_state["product_description_result"],
+                )
+
+    if st.session_state["product_description_result"]:
+        st.write("#### Product Description")
+        st.write(st.session_state["product_description_result"])
 
         # Logic to show the button only if both states are populated
     if st.session_state.get("title_result") and st.session_state.get("ai_listing_draft"):
