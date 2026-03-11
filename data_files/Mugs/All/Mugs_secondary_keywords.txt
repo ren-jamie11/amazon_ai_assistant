@@ -11,8 +11,6 @@ latte
 cappuccino
 espresso
 cocoa
-chocolate
-milk
 soup
 beverage
 drinks

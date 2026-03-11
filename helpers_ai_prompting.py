@@ -300,12 +300,13 @@ Content guidelines:
 - Follow [keyword phrases] by a strong verb (e.g., "features, "includes,", "uses", "offers" etc.) that connects the keyword to its description.
 - Keep each keyword phrase intact rather than splitting words apart (e.g. '4x6 bronze picture frame'). 
 - [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet.
+- Limit consecutive secondary keyword mentions to maximum 3 words, then use a catch-all phrase (e.g., "coffee, tea, latte, or any beverage" instead of listing 4+ keywords in sequence).
 - Include all numerical/dimension-related details from [product specs] in listing.
 - Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made in that same bullet
 - 2 sentences per bullet.
 
 Constraints:
-- Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces).
+- Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). You must have exactly 2 sentences per bullet, separated by period '.'. 
 - Only output the 5 bullets and nothing else (no need to write 'here is your listing'). Bold the subheadings for each bullet followed by ':'.
 - Do NOT repeat the same keyword phrase more than 1 time. Do NOT include brand names. 
 - You may NOT use 1st person (our, my).
