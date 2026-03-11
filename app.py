@@ -525,7 +525,7 @@ with image_description_col:
                     st.image(img, caption=f"Image {i+1}", use_container_width=True)
 
 
-            if st.button("Generate product description"):
+            if st.button("Generate product description", key="generate_product_description_from_images"):
                 # Progress bar
                 progress = st.progress(0)
 
@@ -867,7 +867,7 @@ with ai_tools_col:
         # st.write("##### Listing draft")
         st.write(st.session_state["ai_listing_draft"])
 
-        if st.button("Generate product description"):
+        if st.button("Generate product description", key="generate_product_description_from_listing"):
             primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
             secondary_kw = st.session_state.get("secondary_keywords", "")
             combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
