@@ -28,15 +28,11 @@ planter
 plant
 pampas
 grass
-candle
-holder
 container
 party
 wedding
 birthday
 housewarming
 christmas
-event
 gift
-women
-lovers
+

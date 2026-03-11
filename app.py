@@ -653,9 +653,9 @@ with image_description_col:
             elapsed = end-start
             st.write(f"Request took {elapsed:.2f} seconds")
 
-    if st.session_state["grammar_correct_search_terms"]:
-        st.write("#### Keywords")
-        st.write(st.session_state["grammar_correct_search_terms"])
+    # if st.session_state["grammar_correct_search_terms"]:
+    #     st.write("#### Keywords")
+    #     st.write(st.session_state["grammar_correct_search_terms"])
         
     st.write("")
     if st.session_state["listing_analysis"]:
