@@ -1000,3 +1000,12 @@ def create_listing_docx(title, listing_content):
     docx_bytes.seek(0)
     
     return docx_bytes.getvalue()
+
+
+
+
+
+
+
+
+

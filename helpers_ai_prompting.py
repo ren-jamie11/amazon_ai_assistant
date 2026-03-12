@@ -1,6 +1,8 @@
 import base64
 import tempfile
 import os
+from io import BytesIO
+
 
 image_specs_instructions = """
 Analyze the provided product image(s) and extract and relevant product details and ALL NUMERICAL DIMENSIONS (if any) as concise bullet points.
@@ -136,61 +138,46 @@ def complete_phrase(client,
 
                     prompt: str, 
                     model = "gpt-5.1-2025-11-13",
-                    temperature = 0.2) -> str:
+                    temperature = 0.2,
+                    images = None) -> str:
+    """
+    Generate a completion with optional image inputs.
+    
+    Args:
+        client: OpenAI client
+        prompt: Text prompt
+        model: Model name
+        temperature: Sampling temperature
+        images: Optional list of PIL Image objects to include as visual context
+    """
+    
+    # Build user content: text + optional images
+    if images:
+        user_content = [{"type": "text", "text": prompt}]
+        for img in images:
+            buffered = BytesIO()
+            img.save(buffered, format="JPEG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode()
+            user_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{img_base64}"
+                }
+            })
+    else:
+        user_content = prompt
     
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are an assistant writer for Amazon product listings."},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": user_content}
         ],
         temperature=temperature,    
     )
 
     return response.choices[0].message.content.strip()
 
-
-# title_generator_prompt_gemini = """
-# You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
-# I will provide you with 1-2 top search term as well as a list of primary and secondary keywords, 
-# and you are to write a professional Amazon-ready product title of around 190 characters with space.
-# Use singular tense (e.g. plant instead of plants).
-
-# Structure: [Product Name] + comma + [Core Product Features] + for +  [Occassions and Settings]
-# - Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
-# - Primary Keywords: Place primary keywords and dimensions/numbers near front of title
-# - Secondary keywords:  Include 3-4 setting/occasion-related keywords (not too many). that fit the context of the product.
-#   See secondary keyword list and example product titles for reference.
-
-# Do not hallucinate materials, dimensions, or colors not explicitly provided.
-# Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
-# Use at most 1-2 commas.
-
-# Example product titles:
-
-# Ceramic Flower Vase, 12.5" Large Rustic Farmhouse Vases Home Decor, Tall Pottery Decorative Pampas Vase for Table Living Room Entryway Bathroom Kitchen
-
-# Faux Magnolia Branches, 22 Inches Artificial Magnolia Leaves Stems Real Touch Faux Greenery for Home Office Room Table Vase Farmhouse Decor  
-
-# Constraints:
-# - Product title must be no more than 200 characters with spaces (strict limit)
-# - Do NOT include the same numerical keyword more than 1 time (eg 5x7, 5 x 7, 10inch)
-# - No brand names
-
-# INPUT:
-
-# Top search terms:
-# {top_search_terms}
-
-# Primary Keywords
-# {primary_keywords}
-
-# Secondary Keywords:
-# {secondary_keywords}
-
-# Your output (output only the title and nothing else):
-
-# """
 
 title_generator_prompt_gemini = """
 You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
@@ -245,41 +232,82 @@ Your output (output only the title and nothing else):
 
 """
 
-
 additional_constraints = """
 Constraints:
 - Product title must be no more than 200 characters with spaces (strict limit)
 - No brand names
 - Prohibited characters: ! $ ? _ ^ ¬ ¦, curly braces
-- Don’t repeat same word more than 2 times (plural form counts as repeat).
+- Don’t repeat same word more than 2 times 
 - Don’t include the same numerical keyword more than 1 time (eg 5x7, 10inch)
 - Do not cluster more than 3 adjectives consecutively 
 """
 
 
+
+
+# feature_summary_from_url_prompt_simple = """
+# ROLE: You are an an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
+# perform the following tasks:
+
+# From the listing bullets, identify, synthesize and summarize the products' most important shared features as a list of phrases following the format:
+# [PRODUCT COMPONENT] enables [THIS DESIRABLE FEATUREs]. Use high-impact positive language (speak like a professional salesperson)
+
+# Exclude customer service, satisfaction guarantees, warranty, return policy, or 
+# support-related features from the desirable features list—focus only on product attributes and benefits.
+
+# Output 8-10 unique product attribute-related bullets in TOTAL (not for each individual bullet), each 40-80 chars with space.
+
+# IMPORTANT: Extract only the functional benefit from competitor features, omitting any color (black, white, red), 
+# size (10oz, 12-inch), shape (round, square, oval), or number (6-pack, 4-piece) that may not apply to other product versions.
+# (e.g. instead of saying donut-shaped hollow design, you could say 'unique shape')
+
+# Example: Eye mask
+# 1. Patented bending cartilage design is comfortable, durable, blocks light effectively
+# 2. Adjustable strap fits snugly, does not snag on hair, suitable for any sleeping position
+# 3. ...
+
+# Example: Photo frame
+# 1. Victorian style exudes classic, courtly elegance
+# 2. Hand-embossed latticework gives striking 3-dimensional appearance
+# 3. Textured velvet backing more durable and reliable compared to cheaper alternatives
+# ...
+
+# YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLET (cannot assume information not included).
+# That is, I should be able to find your output's content in the url listing.
+
+# LISTING: 
+
+# {listing}
+# """
+
 feature_summary_from_url_prompt_simple = """
-ROLE: You are an an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
+ROLE: You are an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
 perform the following tasks:
 
-From the listing bullets, identify, synthesize and summarize the products' most important shared features as a list of phrases following the format:
-[PRODUCT COMPONENT] enables [THIS DESIRABLE FEATUREs]. Use high-impact positive language (speak like a professional salesperson)
+From the listing bullets, identify, synthesize and summarize the products' most important shared desirable qualities as a list of short phrases.
 
-Output 7-8 unique bullets in TOTAL (not for each individual bullet), each 40-80 chars with space.
-Do NOT include specific product dimensions/numbers (e.g. instead of saying 10inch screen offers clear display, say large screen offers clear display)
+Extract ONLY the end-result benefit or quality — NOT the product component or mechanism that delivers it.
+For example:
+- "High-transparency real glass enables vivid color reproduction" → "vivid color reproduction"
+- "Anti-corrosion treatment enables reliable use in humid spaces" → "reliable use in humid spaces"
+- "Easy slide-in velvet backboard enables quick photo changes" → "quick, easy photo changes"
 
-Example: Eye mask
-1. Patented bending cartilage design is comfortable, durable, blocks light effectively
-2. Adjustable strap fits snugly, does not snag on hair, suitable for any sleeping position
+Exclude customer service, satisfaction guarantees, warranty, return policy, or 
+support-related features — focus only on desirable end-result qualities.
+
+Output 8-10 unique phrases in TOTAL (not for each individual listing). Each phrase must be 3-6 words describing the desirable quality only. Use high-impact positive language.
+
+IMPORTANT: Extract only the functional benefit from listings, omitting any color (black, white, red), 
+size (10oz, 12-inch), shape (round, square, oval), or number (6-pack, 4-piece) that may not apply to other product versions.
+
+Example output (eye mask):
+1. Comfortable and durable
+2. Blocks light effectively
 3. ...
 
-Example: Photo frame
-1. Victorian style exudes classic, courtly elegance
-2. Hand-embossed latticework gives striking 3-dimensional appearance
-3. Textured velvet backing more durable and reliable compared to cheaper alternatives
-...
 
-YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLET (cannot assume information not included).
-That is, I should be able to find your output's content in the url listing.
+YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLETS (cannot assume information not included).
+That is, I should be able to trace each output phrase back to a benefit mentioned in the listing.
 
 LISTING: 
 
@@ -287,22 +315,86 @@ LISTING:
 """
 
 
+# listing_writer_instructions_gemini = """
+# You are an assistant for Amazon listing writing for {selected_product}. I will provide you with [product specs], [keyword phrases], [secondary keywords] and [desirable features].
+# Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
+#     1. Including info from [product specs]
+#     2. Naturally incorporating [keyword phrases] and [secondary keywords] into listing (no need to precede with articles like 'a', 'an', 'the', 'this' etc.) 
+#     3. Communicating [desirable features] in 5 logically grouped bullet points (subheading 2-3 words)
+#        The subheading and content of each bullet should focus on 1 single theme (e.g. appearance, quality, ease of use)
+
+# Content guidelines: 
+# - Incorporate [keyword phrases], one after the subheading of each bullet, in same order as provided.
+# - Follow [keyword phrases] by a strong verb (e.g., "features, "includes,", "uses", "offers" etc.) that connects the keyword to its description.
+# - Keep each keyword phrase intact rather than splitting words apart (e.g. '4x6 bronze picture frame'). 
+# - [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet.
+# - Include all numerical/dimension-related details from [product specs] in listing.
+# - Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made earlier in the listing.
+# - 2 sentences per bullet.
+
+# Constraints:
+# - Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). 
+# - Only output the 5 bullets and nothing else (no need to write 'here is your listing'). Bold the subheadings for each bullet followed by ':'.
+# - Do NOT repeat the same keyword phrase more than 1 time. Do NOT include brand names. 
+# - You may NOT use 1st person (our, my).
+
+# Example: Emulate this tone/language style
+
+# - No light Leakage: With the heightened 22 mm adaptive hollow nose bridge, LitBear sleep mask fully fits all nose shapes, helps improve sleep, and gets longer deep sleep
+
+# - Completely Block Light for Side Sleeper: New design of 15° tilt angle ultra-thin sides of the eye mask for sleeping which can reduce 90% pressure on your temples. Sleep more comfortably when is on your side, a perfect light-blocking sleeping mask for back and stomach sleepers
+
+# - Blinking Freely: Deep 12 mm 3D contoured cup eye sockets leave larger space for blinking, maintaining your beautiful eye makeup without pressure on your eyes. This sleep mask for women and men will be a good choice for you
+
+# - Comfortable and Soft: Made of smooth cooling fabric lining and premium 6-layer low rebound soft memory foam make the sleep eye mask breathable and lightweight, comfortable for travel, nap, flight, camping, and Yoga
+
+# - Adjustable: Easy to adjust the elastic buckle strap from 20.5 to 26.5 inches and fits snuggly, is suitable for any sleeping position and stays in place
+
+# USER INPUT
+
+# [Product Specs]
+
+# {product_specs}
+
+# [Keyword Phrases]
+
+# {keyword_search_phrases}
+
+# [Secondary keywords]
+
+# {secondary_keywords}
+
+# [Desirable Features]
+
+# {desirable_features}
+
+# If desirable features conflict with product specs or the uploaded product images (e.g., color, dimension, material, shape, style), always prioritize the uploaded images and product specs — ignore the conflicting desirable feature.
+# The uploaded images are the ground truth for what the product actually looks like. If you can see specific colors, shapes, materials, or components in the images, use those details and discard any contradicting info from desirable features.
+# Otherwise, include ALL of the non-conflicting desirable features accurately and precisely, staying true to its core meaning. 
+# Only mention non-conflicting features 1 time in the entire listing (do not repeat).
+
+# Your output: 
+# """
+
 listing_writer_instructions_gemini = """
-You are an assistant for Amazon listing writing for {selected_product}. I will provide you with [product specs], [keyword phrases], [secondary keywords] and [desirable features].
+You are an assistant for Amazon listing writing for {selected_product}. I will provide you with images of the product, [product specs], [keyword phrases], 
+[secondary keywords] and [desired features] that other similar products have.
+
 Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
     1. Including info from [product specs]
     2. Naturally incorporating [keyword phrases] and [secondary keywords] into listing (no need to precede with articles like 'a', 'an', 'the', 'this' etc.) 
-    3. Communicating [desirable features] in 5 logically grouped bullet points (subheading 2-3 words)
-       The subheading and content of each bullet should focus on 1 single theme (e.g. appearance, quality, ease of use)
+    3. Identify [desired features] that are relevant to uploaded images and [product specs], and then
+       communicate them im 5 logically grouped bullet points (subheading 2-3 words). 
+       The subheading and content of each bullet should focus on 1 single theme that's either aesthetic (e.g. style) or functional (e.g. quality, versatility, durability)
+       Place aesthetic-related subheadings before functional-related. 
 
 Content guidelines: 
 - Incorporate [keyword phrases], one after the subheading of each bullet, in same order as provided.
 - Follow [keyword phrases] by a strong verb (e.g., "features, "includes,", "uses", "offers" etc.) that connects the keyword to its description.
 - Keep each keyword phrase intact rather than splitting words apart (e.g. '4x6 bronze picture frame'). 
 - [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet.
-- Limit consecutive secondary keyword mentions to maximum 3 words, then use a catch-all phrase (e.g., "coffee, tea, latte, or any beverage" instead of listing 4+ keywords in sequence).
 - Include all numerical/dimension-related details from [product specs] in listing.
-- Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made in that same bullet
+- Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made earlier in the listing.
 - 2 sentences per bullet.
 
 Constraints:
@@ -337,15 +429,48 @@ USER INPUT
 
 {secondary_keywords}
 
-[Desirable Features]
+[desired features]
 
 {desirable_features}
 
-If desirable features conflict with product specs (e.g., color, dimension, material), always use product specs and ignore the conflicting desirable feature.
-Otherwise, include ALL of the desirable features accurately and precisely, staying true to its core meaning.
+Treat [desirable features] as suggestions, not strict requirements.
+When appropriate, weave relevant desired features naturally and logically in the listing only 1 time without repetition.
 
 Your output: 
 """
+
+
+extra_desirable_feature_instructions = """
+Important note on which desired features to include: 
+The uploaded images and [product specs] are the ground truth for what the product actually looks like and what it can do.
+When deciding which [candidate features] to include, apply these rules:
+
+INCLUDE a candidate feature if it is:
+- Subjective and not easily disproven (e.g., "sturdy," "high-quality," "comfortable") — these are safe because a customer cannot visually contradict them.
+- An objective claim on color, material, finish, attribute that IS clearly confirmed by the uploaded images or [product specs] 
+  (e.g., if the image shows a glossy inner glaze, you may say "shiny inner glaze"; if the specs say "microwave safe," you may say "microwave safe").
+
+EXCLUDE a candidate feature if it is:
+- An objective claim that clearly contradicts images or specs (e.g. color, material, dimension, texture, finish etc.)
+
+In short: Always prioritize images and specs over candidate features if there is any conflict.
+
+Your output: 
+
+
+Tone guidelines: 
+Avoid generic AI-sounding copy. Specifically, do not use: 
+(1) "peace-of-mind" filler (worry-free, hassle-free, seamless, no-fuss), 
+(2) generic lifestyle promises (elevate your space, transform your home, add a touch of elegance, create a cozy atmosphere), 
+(3) "perfect for everything" catch-alls (perfect for any room, ideal for any space, great gift idea),
+Use specific, tangible language — describe what the product physically does, what it's made of, or how it concretely functions. For example, prefer "scratch-resistant glass cover keeps photos clear" over "elevate your home décor." 
+Every descriptive claim should point to a specific material, feature, or use case rather than abstract praise
+
+Treat [desirable features] as suggestions, not strict requirements.
+When appropriate, weave relevant desired features naturally and logically in the listing only 1 time without repetition.
+
+"""
+
 
 
 keyword_grammar_fix_prompt = """
@@ -372,101 +497,181 @@ Keywords to fix:
 Return only the corrected keyword list, each keyword phrase separated by comma ","
 """
 
+
+# product_description_instructions = """
+# You are an expert Amazon copywriter specializing in home decor products (artificial plants, flowers, picture frames etc.). 
+# Your task is to write a compelling, conversion-optimized product listing using only the provided inputs. 
+# You must demonstrate a deep understanding of why customers buy this type of product — the emotional drivers, lifestyle aspirations, 
+# and practical pain points — and let that understanding shape every sentence.
+
+# =============================================================
+# INPUTS
+# =============================================================
+# Product Specs:
+# {product_specs}
+
+# Keywords:
+# {keywords}
+
+# Desirable Features:
+# {desirable_features}
+
+# Bullet Point Listing:
+# {bullet_point_listing}
+
+# =============================================================
+# CRITICAL RULE
+# =============================================================
+# Do not introduce any facts, claims, dimensions, or features not present in the inputs. Every descriptive claim must be grounded in the provided information.
+
+# =============================================================
+# OUTPUT STRUCTURE
+# =============================================================
+# You must follow this exact format. Do not add labels like "1a" or "FEATURE PARAGRAPH 1" anywhere in the output.
+# Subheadings must be 2-3 words, high-impact (e.g. Timeless elegant design, Maintenance free)
+
+# [Introductory paragraph — ~100 words]
+
+# Write a positive concise paragraph that paints a picture of the product in their home and life. 
+# Lead with the transformation or feeling the product delivers, not its specifications.
+#  Naturally incorporate 1-2 keywords without forcing them.
+
+# **[Feature 1 subheading]**
+
+# [Feature 1 body — ~50 words, 1-2 sentences]
+
+# Focus on primary aesthetic value of the product. The body describes the product's visual qualities — what makes it look beautiful, lifelike, or sophisticated.
+
+# **[Feature 2 subheading]**
+
+# [Feature 2 body — ~50 words, 1-2 sentences]
+# Focus on primary functional values of the product.. Do NOT use the words "Functional Value". The body highlights what makes this product easy, practical, or worry-free to own and addresses common pain points (maintenance, durability, care). Frame benefits from the customer's perspective.
+
+# Example body tone: "The faux gladiolus bring the refreshing look of spring indoors all year long without any watering, sunlight, or care — perfect for busy individuals, allergy sufferers, or anyone who desires flawless decor."
+
+# **[Feature 3 subheading]**
+
+# [Feature 3 body — ~50 words, 1-2 sentences]
+
+# Focus on the settings, ocassions, and who it's for. The body names the settings, occasions, and types of people this product suits best. End with a subtle call to action or confidence-building close.
+
+# Example body tone: "Whether styling a dining table centerpiece, elevating a wedding backdrop, or adding a cheerful accent to your office, these flowers offer effortless sophistication that never fades."
+
+# **Product Specifications**
+
+# [4-8 bullet points]
+
+# List all tangible product details pulled directly from the provided specs. Format each line as:
+# - Label: Value
+# Do not estimate or embellish any values.
+
+# **Kindly Note**
+
+# [3 bullet points]
+
+# Brief, friendly, practical notes that preempt common complaints and set accurate expectations. Cover: color variation due to lighting/photography, reshaping instructions for compressed items, and care/cleaning guidance. Tone: helpful and reassuring, not legalistic.
+
+# =============================================================
+# FORMATTING RULES
+# =============================================================
+# - The five section headers must appear exactly as written using markdown bold: **Kindly Note** and **Product Specifications**
+# - The three feature subheadings must also be bolded using markdown bold: e.g. **Timeless Elegant Design**
+# - Do not include any other bold text in the body copy
+# - Do not number or label the feature sections (no "1a", "1b", "Feature 1", "AESTHETIC APPEAL", etc.)
+# - Do not add any text outside of this structure
+
+# =============================================================
+# WRITING GUIDELINES
+# =============================================================
+
+# KEYWORDS: Weave provided keywords naturally into the copy. 
+
+# ACCURACY: Never invent specifications, dimensions, materials, or use cases. If a detail is not in the inputs, leave it out.
+
+# SPECIFICITY: Vague filler phrases like "high quality" or "perfect for any home" add nothing. Replace them with concrete, sensory, or situational details drawn from the inputs.
+
+# Describe product benefits positively without criticizing the buyer's existing setup; avoid negative framing like "if your space feels cold" or "tired of bland decor."
+
+# TONE: Positive and concise. Avoid overly flowery, melodramatic, or theatrical language like "more you," "transform your life," "hassle-free", 
+# or repetitive emphasis phrases. Keep tone simple, direct, and descriptive.
+
+# """
+
 product_description_instructions = """
-You are an expert Amazon copywriter specializing in home decor products (artificial plants, flowers, picture frames etc.). 
-Your task is to write a compelling, conversion-optimized product listing using only the provided inputs. 
-You must demonstrate a deep understanding of why customers buy this type of product — the emotional drivers, lifestyle aspirations, 
-and practical pain points — and let that understanding shape every sentence.
+You are an expert Amazon copywriter for home decor products (artificial plants, flowers, picture frames, etc.).
+Write a conversion-optimized product listing using only the provided inputs.
 
 =============================================================
 INPUTS
 =============================================================
-Product Specs:
-{product_specs}
-
-Keywords:
-{keywords}
-
-Desirable Features:
-{desirable_features}
-
-Bullet Point Listing:
-{bullet_point_listing}
+Product Specs: {product_specs}
+Keywords: {keywords}
+Desirable Features: {desirable_features}
+Bullet Point Listing: {bullet_point_listing}
 
 =============================================================
 CRITICAL RULE
 =============================================================
-Do not introduce any facts, claims, dimensions, or features not present in the inputs. Every descriptive claim must be grounded in the provided information.
+Do not introduce any facts, claims, dimensions, or features not present in the inputs.
 
 =============================================================
 OUTPUT STRUCTURE
 =============================================================
-You must follow this exact format. Do not add labels like "1a" or "FEATURE PARAGRAPH 1" anywhere in the output.
-Subheadings must be 2-3 words, high-impact (e.g. Timeless elegant design, Maintenance free)
+Follow this exact format. Do not add labels like "1a" or "Feature 1" anywhere.
+Subheadings must be 2-3 words and descriptive (e.g. Timeless Elegant Design, Maintenance Free).
 
 [Introductory paragraph — ~100 words]
 
-Write a vivid, emotionally resonant opening that makes the customer feel something. Paint a picture of the product in their home and life. Lead with the transformation or feeling the product delivers, not its specifications. Naturally incorporate 1-2 keywords without forcing them.
+A concise paragraph that places the product in the customer's home. Lead with the feeling or effect the product creates, not its specs. Naturally incorporate 1-2 keywords.
 
 **[Feature 1 subheading]**
-
-[Feature 1 body — ~50 words, 1-2 sentences]
-
-Focus on primary aesthetic value of the product. The body describes the product's visual qualities — what makes it look beautiful, lifelike, or sophisticated.
+[~50 words, 1-2 sentences]
+Focus on aesthetics — what makes the product look good. Describe visual qualities: shape, texture, color, finish.
 
 **[Feature 2 subheading]**
-
-[Feature 2 body — ~50 words, 1-2 sentences]
-Focus on primary functional values of the product.. Do NOT use the words "Functional Value". The body highlights what makes this product easy, practical, or worry-free to own and addresses common pain points (maintenance, durability, care). Frame benefits from the customer's perspective.
-
-Example body tone: "The faux gladiolus bring the refreshing look of spring indoors all year long without any watering, sunlight, or care — perfect for busy individuals, allergy sufferers, or anyone who desires flawless decor."
+[~50 words, 1-2 sentences]
+Focus on practicality — what makes the product easy or worry-free to own. Address common pain points (maintenance, durability, care) from the customer's perspective. Do not use the label "Functional Value."
 
 **[Feature 3 subheading]**
-
-[Feature 3 body — ~50 words, 1-2 sentences]
-
-Focus on the settings, ocassions, and who it's for. The body names the settings, occasions, and types of people this product suits best. End with a subtle call to action or confidence-building close.
-
-Example body tone: "Whether styling a dining table centerpiece, elevating a wedding backdrop, or adding a cheerful accent to your office, these flowers offer effortless sophistication that never fades."
+[~50 words, 1-2 sentences]
+Focus on settings, occasions, and who it's for. Name specific rooms, events, and recipient types. End with a light call to action or confidence-building close.
 
 **Product Specifications**
-
 [4-8 bullet points]
-
-List all tangible product details pulled directly from the provided specs. Format each line as:
-- Label: Value
-Do not estimate or embellish any values.
+List tangible product details from the provided specs. Format: - Label: Value. Do not estimate or embellish.
 
 **Kindly Note**
-
 [3 bullet points]
-
-Brief, friendly, practical notes that preempt common complaints and set accurate expectations. Cover: color variation due to lighting/photography, reshaping instructions for compressed items, and care/cleaning guidance. Tone: helpful and reassuring, not legalistic.
+Brief, friendly notes that set accurate expectations. Cover: color variation from lighting/photography, reshaping tips for compressed items, and care/cleaning guidance. Tone: helpful, not legalistic.
 
 =============================================================
 FORMATTING RULES
 =============================================================
-- The five section headers must appear exactly as written using markdown bold: **Kindly Note** and **Product Specifications**
-- The three feature subheadings must also be bolded using markdown bold: e.g. **Timeless Elegant Design**
-- Do not include any other bold text in the body copy
-- Do not number or label the feature sections (no "1a", "1b", "Feature 1", "AESTHETIC APPEAL", etc.)
-- Do not add any text outside of this structure
+- Bold the five section headers and three feature subheadings with markdown (**bold**)
+- No other bold text in body copy
+- Do not number or label feature sections
+- No text outside this structure
 
 =============================================================
-WRITING GUIDELINES
+TONE & WRITING GUIDELINES
 =============================================================
+TONE: Write like a knowledgeable friend recommending a product — warm but plain-spoken. Be specific and concrete rather than dramatic.
+Use second-person language ("your," "you") instead of third-person articles ("a," "the") when describing customer use cases and benefits (e.g., "bring your favorite photo" not "bring a favorite photo").
 
-KEYWORDS: Weave provided keywords naturally into the copy. 
+Avoid:
+- Flowery or theatrical phrasing ("transform your space," "effortless sophistication that never fades," "beautifully lived in," "thoughtfully collected")
+- Vague superlatives ("stunning," "exquisite," "breathtaking," "gorgeous")
+- Emotional overreach ("imagine it on your mantel catching the light")
+- Filler phrases that say nothing ("high quality," "perfect for any home," "a touch of elegance", 'hassle-free)
 
-ACCURACY: Never invent specifications, dimensions, materials, or use cases. If a detail is not in the inputs, leave it out.
+Instead:
+- State what the product looks like and why that matters in plain, specific terms
+- Describe what a customer would actually notice: the shape, the color, the weight, the texture
+- Let the product details do the work — a well-described olive-leaf relief is more convincing than calling it "stunning"
 
-SPECIFICITY: Vague filler phrases like "high quality" or "perfect for any home" add nothing. Replace them with concrete, sensory, or situational details drawn from the inputs.
+KEYWORDS: Weave provided keywords naturally into the copy.
 
-Describe product benefits positively without criticizing the buyer's existing setup; avoid negative framing like "if your space feels cold" or "tired of bland decor."
+ACCURACY: Never invent specs, dimensions, materials, or use cases.
 
-TONE: Positive and concise. Avoid overly flowery, melodramatic, or theatrical language like "more you," "transform your life," "hassle-free", 
-or repetitive emphasis phrases. Keep tone simple, direct, and descriptive.
-
+Describe benefits positively — do not criticize the buyer's current setup (avoid "if your space feels cold" or "tired of bland decor").
 """
-
-

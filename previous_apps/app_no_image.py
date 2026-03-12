@@ -625,7 +625,6 @@ with image_description_col:
             st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
 
             start=time.time()
-            
             # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
             #         model="gemini-3-flash-preview",
             #         contents=generate_listing_prompt,
@@ -638,12 +637,10 @@ with image_description_col:
 
             # st.write(generate_listing_prompt)
             
-            # st.write(generate_listing_prompt)
             st.session_state["ai_listing_draft"] = complete_phrase(
                                 client,
                                 generate_listing_prompt,
-                                model='gpt-5.1-2025-11-13',
-                                images=st.session_state.get('uploaded_images') or None
+                                model='gpt-5.1-2025-11-13'
                             )
                             
             log_to_sheets(
@@ -847,17 +844,17 @@ with ai_tools_col:
 
             # st.text_area("Final title", key = 'finished_product_title')
         
-        # with condensor_tab:
-        #     st.text_area(
-        #             "Keywords",
-        #             placeholder="e.g. picture, frame, gold, ornate",
-        #             key="input_keywords_to_condense",
-        #             height=240, width= 360
-        #         )
+        with condensor_tab:
+            st.text_area(
+                    "Keywords",
+                    placeholder="e.g. picture, frame, gold, ornate",
+                    key="input_keywords_to_condense",
+                    height=240, width= 360
+                )
             
-        #     if st.button("整理关键词"):
-        #         st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
-        #         st.write(st.session_state['cleaned_keywords'])
+            if st.button("整理关键词"):
+                st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
+                st.write(st.session_state['cleaned_keywords'])
 
 
     if st.session_state["title_result"]:
