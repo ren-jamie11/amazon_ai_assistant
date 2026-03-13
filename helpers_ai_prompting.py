@@ -618,4 +618,5 @@ KEYWORDS: Weave provided keywords naturally into the copy.
 ACCURACY: Never invent specs, dimensions, materials, or use cases.
 
 Describe benefits positively — do not criticize the buyer's current setup (avoid "if your space feels cold" or "tired of bland decor").
+When appropriate, include [keywords] and [desirable features] that [Bullet Point Listing] missed. 
 """
