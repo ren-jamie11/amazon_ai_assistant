@@ -221,6 +221,7 @@ _STATE_KEYS_TO_DELETE = [
     "previous_user_input",
     "previous_user_phrase",
     "previous_user_input_synonym",
+    "product_description_result"
 ]
 
 def _clear_product_state():
