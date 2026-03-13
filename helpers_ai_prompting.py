@@ -200,7 +200,6 @@ b) Otherwise: [Product Name] + , + [Primary Keywords + Dimensions]  + , +  [Prod
 
 Example template: 8x10 Picture Frame Gold, Vintage Photo Display with Tabletop Stand and Wall Hanging Mounting, Decorative Frame for Home Office Gallery Wedding Gift Decor
 
-Do not hallucinate materials, dimensions, or colors not explicitly provided.
 Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
 Ensure attributes (e.g. microwave safe, UV-protective) modify the main product, not individual components 
 
@@ -227,6 +226,7 @@ Primary Keywords
 Secondary Keywords:
 {secondary_keywords}
 
+Do NOT include info relating to color or material that is not included in the above keyword list.
 Make sure product title is strictly between 150-190 chars with spaces. 
 Your output (output only the title and nothing else):
 
