@@ -870,89 +870,106 @@ with ai_tools_col:
         # st.write("##### Listing draft")
         st.write(st.session_state["ai_listing_draft"])
 
-        if st.button("Generate product description", key="generate_product_description_from_listing"):
-            primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
-            secondary_kw = st.session_state.get("secondary_keywords", "")
-            combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
+        desc_col, download_col = st.columns([1, 1])
+        with desc_col:
+            if st.button("Generate product description", key="generate_product_description_from_listing"):
+                primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
+                secondary_kw = st.session_state.get("secondary_keywords", "")
+                combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
 
-            description_prompt = product_description_instructions.format(
-                product_specs=st.session_state["product_specs"],
-                keywords=combined_keywords,
-                desirable_features=st.session_state["listing_analysis"],
-                bullet_point_listing=st.session_state["ai_listing_draft"],
+                description_prompt = product_description_instructions.format(
+                    product_specs=st.session_state["product_specs"],
+                    keywords=combined_keywords,
+                    desirable_features=st.session_state["listing_analysis"],
+                    bullet_point_listing=st.session_state["ai_listing_draft"],
+                )
+
+                with st.spinner("Generating product description..."):
+                    st.session_state["product_description_result"] = complete_phrase(
+                        client,
+                        description_prompt,
+                        model='gpt-5.1-2025-11-13'
+                    )
+                    log_to_sheets(
+                        function_name="generate_product_description",
+                        input_prompt=description_prompt,
+                        output=st.session_state["product_description_result"],
+                    )
+
+        with download_col:
+            def generate_docx():
+                doc = Document()
+                
+                # 1. Add Title if available
+                title_text = st.session_state.get("title_result", "")
+                if title_text:
+                    title_text = title_text.replace("**", "")
+                    heading = doc.add_heading(level=1)
+                    run = heading.add_run(title_text)
+                    run.font.color.rgb = RGBColor(0, 0, 0)
+                    doc.add_paragraph("")
+
+                # 2. Process the Listing Content
+                content = st.session_state["ai_listing_draft"]
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    clean_line = line.replace("**", "")
+                    
+                    if line.startswith(('-', '*')):
+                        clean_line = clean_line.lstrip('-* ').strip()
+                        p = doc.add_paragraph(style='List Bullet')
+                    else:
+                        p = doc.add_paragraph()
+
+                    if ":" in clean_line:
+                        subheading, description = clean_line.split(":", 1)
+                        bold_run = p.add_run(subheading + ":")
+                        bold_run.bold = True
+                        p.add_run(description)
+                    else:
+                        p.add_run(clean_line)
+
+                # 3. Add Product Description on a new page if available
+                product_desc = st.session_state.get("product_description_result", "")
+                if product_desc:
+                    from docx.oxml.ns import qn
+                    from docx.oxml import OxmlElement
+                    # Insert page break
+                    page_break_p = doc.add_paragraph()
+                    run = page_break_p.add_run()
+                    br = OxmlElement('w:br')
+                    br.set(qn('w:type'), 'page')
+                    run._element.append(br)
+
+                    for line in product_desc.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        clean_line = line.replace("**", "")
+                        p = doc.add_paragraph()
+                        if ":" in clean_line:
+                            subheading, description = clean_line.split(":", 1)
+                            bold_run = p.add_run(subheading + ":")
+                            bold_run.bold = True
+                            p.add_run(description)
+                        else:
+                            p.add_run(clean_line)
+                
+                buffer = BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+                return buffer
+
+            st.download_button(
+                label="Download Result",
+                data=generate_docx(),
+                file_name="Listing_Final.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
-
-            with st.spinner("Generating product description..."):
-                st.session_state["product_description_result"] = complete_phrase(
-                    client,
-                    description_prompt,
-                    model='gpt-5.1-2025-11-13'
-                )
-                log_to_sheets(
-                    function_name="generate_product_description",
-                    input_prompt=description_prompt,
-                    output=st.session_state["product_description_result"],
-                )
 
     if st.session_state["product_description_result"]:
         st.write("#### Product Description")
         st.write(st.session_state["product_description_result"])
-
-        # Logic to show the button only if both states are populated
-    if st.session_state.get("title_result") and st.session_state.get("ai_listing_draft"):
-        
-        def generate_docx():
-            doc = Document()
-            
-            # 1. Add and Format the Title (Source 1)
-            # We create the heading, then access its font to change the color to black
-            title_text = st.session_state["title_result"].replace("**", "")
-            heading = doc.add_heading(level=1)
-            run = heading.add_run(title_text)
-            run.font.color.rgb = RGBColor(0, 0, 0)  # Sets color to Black
-            
-            doc.add_paragraph("")  # spacing
-
-            # 2. Process the Listing Content (Sources 2-6)
-            content = st.session_state["ai_listing_draft"]
-            for line in content.split('\n'):
-                line = line.strip()
-                if not line:
-                    continue
-                
-                clean_line = line.replace("**", "")
-                
-                # Handle bullet points (common in listing drafts)
-                if line.startswith(('-', '*')):
-                    clean_line = clean_line.lstrip('-* ').strip()
-                    p = doc.add_paragraph(style='List Bullet')
-                else:
-                    p = doc.add_paragraph()
-
-                # Format subheadings (e.g., "Regal Vintage Style:") as Bold
-                if ":" in clean_line:
-                    subheading, description = clean_line.split(":", 1)
-                    
-                    # Add the bold subheading
-                    bold_run = p.add_run(subheading + ":")
-                    bold_run.bold = True
-                    
-                    # Add the remaining text normally
-                    p.add_run(description)
-                else:
-                    p.add_run(clean_line)
-            
-            buffer = BytesIO()
-            doc.save(buffer)
-            buffer.seek(0)
-            return buffer
-
-        # Download Button
-        st.write("")
-        st.write("")
-        st.download_button(
-            label="Download Result",
-            data=generate_docx(),
-            file_name="Listing_Final.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
