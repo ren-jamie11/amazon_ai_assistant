@@ -666,6 +666,7 @@ Subheadings must be 2-3 words and descriptive (e.g. Timeless Elegant Design, Mai
 [Introductory paragraph — ~100 words]
 
 A concise paragraph that places the product in the customer's home. Lead with the feeling or effect the product creates, not its specs. Naturally incorporate 1-2 keywords.
+(no subheading needed for this intro paragraph)
 
 **[Feature 1 subheading]**
 [~50 words, 1-2 sentences]
