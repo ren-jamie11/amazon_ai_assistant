@@ -280,11 +280,53 @@ Constraints:
 # {listing}
 # """
 
+
+
+
+
+
+# feature_summary_from_url_prompt_simple = """
+# ROLE: You are an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
+# perform the following tasks:
+
+# From the listing bullets, identify, synthesize and summarize the products' most important shared desirable qualities as a list of short phrases.
+
+# Extract ONLY the end-result benefit or quality — NOT the product component or mechanism that delivers it.
+# For example:
+# - "High-transparency real glass enables vivid color reproduction" → "vivid color reproduction"
+# - "Anti-corrosion treatment enables reliable use in humid spaces" → "reliable use in humid spaces"
+# - "Easy slide-in velvet backboard enables quick photo changes" → "quick, easy photo changes"
+
+# Exclude customer service, satisfaction guarantees, warranty, return policy, or 
+# support-related features — focus only on desirable end-result qualities.
+
+# Output 8-10 unique phrases in TOTAL (not for each individual listing). Each phrase must be 3-6 words describing the desirable quality only. Use high-impact positive language.
+
+# IMPORTANT: Extract only the functional benefit from listings, omitting any color (black, white, red), 
+# size (10oz, 12-inch), shape (round, square, oval), or number (6-pack, 4-piece) that may not apply to other product versions.
+
+# Example output (eye mask):
+# 1. Comfortable and durable
+# 2. Blocks light effectively
+# 3. ...
+
+
+# YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLETS (cannot assume information not included).
+# That is, I should be able to trace each output phrase back to a benefit mentioned in the listing.
+
+# LISTING: 
+
+# {listing}
+# """
+
 feature_summary_from_url_prompt_simple = """
 ROLE: You are an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
 perform the following tasks:
 
-From the listing bullets, identify, synthesize and summarize the products' most important shared desirable qualities as a list of short phrases.
+From the listing bullets, identify, synthesize and summarize the products' most important 
+specific desirable qualities as a list of short phrases.
+Focus on concrete, tangible benefits over vague descriptors. Prioritize specific functional and aesthetic outcomes 
+(e.g., "clear image display," "scratch-resistant surface," "holds fresh flowers upright") rather than vague claims (e.g., "transforms spaces," "adds charm," "elevates décor").
 
 Extract ONLY the end-result benefit or quality — NOT the product component or mechanism that delivers it.
 For example:
@@ -300,11 +342,12 @@ Output 8-10 unique phrases in TOTAL (not for each individual listing). Each phra
 IMPORTANT: Extract only the functional benefit from listings, omitting any color (black, white, red), 
 size (10oz, 12-inch), shape (round, square, oval), or number (6-pack, 4-piece) that may not apply to other product versions.
 
-Example output (eye mask):
+Example output of specific concrete benefits (eye mask):
 1. Comfortable and durable
 2. Blocks light effectively
-3. ...
-
+3. Zero eye pressure
+4  Promotes airflow and breathing
+5. ...
 
 YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLETS (cannot assume information not included).
 That is, I should be able to trace each output phrase back to a benefit mentioned in the listing.
