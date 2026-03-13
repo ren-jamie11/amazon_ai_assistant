@@ -870,7 +870,8 @@ with ai_tools_col:
         # st.write("##### Listing draft")
         st.write(st.session_state["ai_listing_draft"])
 
-        desc_col, download_col = st.columns([1, 1])
+        st.write("")
+        desc_col, download_col = st.columns([5, 1])
         with desc_col:
             if st.button("Generate product description", key="generate_product_description_from_listing"):
                 primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
