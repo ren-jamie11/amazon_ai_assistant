@@ -847,17 +847,17 @@ with ai_tools_col:
 
             # st.text_area("Final title", key = 'finished_product_title')
         
-        # with condensor_tab:
-        #     st.text_area(
-        #             "Keywords",
-        #             placeholder="e.g. picture, frame, gold, ornate",
-        #             key="input_keywords_to_condense",
-        #             height=240, width= 360
-        #         )
+        with condensor_tab:
+            st.text_area(
+                    "Keywords",
+                    placeholder="e.g. picture, frame, gold, ornate",
+                    key="input_keywords_to_condense",
+                    height=240, width= 360
+                )
             
-        #     if st.button("整理关键词"):
-        #         st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
-        #         st.write(st.session_state['cleaned_keywords'])
+            if st.button("整理关键词"):
+                st.session_state['cleaned_keywords'] = get_unique_words_from_string(st.session_state['input_keywords_to_condense'])
+                st.write(st.session_state['cleaned_keywords'])
 
 
     if st.session_state["title_result"]:
