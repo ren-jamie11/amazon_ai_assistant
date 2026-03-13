@@ -444,7 +444,7 @@ Constraints:
 - Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). You must have exactly 2 sentences per bullet, separated by period '.'. 
 - Only output the 5 bullets and nothing else (no need to write 'here is your listing'). Bold the subheadings for each bullet followed by ':'.
 - Do NOT repeat the same keyword phrase more than 1 time. Do NOT include brand names. 
-- You may NOT use 1st person (our, my).
+- Use 2nd person possessive "your" instead of indefinite words like "any" or "every" when describing settings and uses. Do NOT use 1st person.
 
 Example: Emulate this tone/language style
 
@@ -515,7 +515,6 @@ When appropriate, weave relevant desired features naturally and logically in the
 """
 
 
-
 keyword_grammar_fix_prompt = """
 Reorder the following product keyword phrases so that adjectives and size descriptors 
 come BEFORE nouns. Maintain natural English word order where adjectives precede the 
@@ -540,105 +539,6 @@ Keywords to fix:
 Return only the corrected keyword list, each keyword phrase separated by comma ","
 """
 
-
-# product_description_instructions = """
-# You are an expert Amazon copywriter specializing in home decor products (artificial plants, flowers, picture frames etc.). 
-# Your task is to write a compelling, conversion-optimized product listing using only the provided inputs. 
-# You must demonstrate a deep understanding of why customers buy this type of product — the emotional drivers, lifestyle aspirations, 
-# and practical pain points — and let that understanding shape every sentence.
-
-# =============================================================
-# INPUTS
-# =============================================================
-# Product Specs:
-# {product_specs}
-
-# Keywords:
-# {keywords}
-
-# Desirable Features:
-# {desirable_features}
-
-# Bullet Point Listing:
-# {bullet_point_listing}
-
-# =============================================================
-# CRITICAL RULE
-# =============================================================
-# Do not introduce any facts, claims, dimensions, or features not present in the inputs. Every descriptive claim must be grounded in the provided information.
-
-# =============================================================
-# OUTPUT STRUCTURE
-# =============================================================
-# You must follow this exact format. Do not add labels like "1a" or "FEATURE PARAGRAPH 1" anywhere in the output.
-# Subheadings must be 2-3 words, high-impact (e.g. Timeless elegant design, Maintenance free)
-
-# [Introductory paragraph — ~100 words]
-
-# Write a positive concise paragraph that paints a picture of the product in their home and life. 
-# Lead with the transformation or feeling the product delivers, not its specifications.
-#  Naturally incorporate 1-2 keywords without forcing them.
-
-# **[Feature 1 subheading]**
-
-# [Feature 1 body — ~50 words, 1-2 sentences]
-
-# Focus on primary aesthetic value of the product. The body describes the product's visual qualities — what makes it look beautiful, lifelike, or sophisticated.
-
-# **[Feature 2 subheading]**
-
-# [Feature 2 body — ~50 words, 1-2 sentences]
-# Focus on primary functional values of the product.. Do NOT use the words "Functional Value". The body highlights what makes this product easy, practical, or worry-free to own and addresses common pain points (maintenance, durability, care). Frame benefits from the customer's perspective.
-
-# Example body tone: "The faux gladiolus bring the refreshing look of spring indoors all year long without any watering, sunlight, or care — perfect for busy individuals, allergy sufferers, or anyone who desires flawless decor."
-
-# **[Feature 3 subheading]**
-
-# [Feature 3 body — ~50 words, 1-2 sentences]
-
-# Focus on the settings, ocassions, and who it's for. The body names the settings, occasions, and types of people this product suits best. End with a subtle call to action or confidence-building close.
-
-# Example body tone: "Whether styling a dining table centerpiece, elevating a wedding backdrop, or adding a cheerful accent to your office, these flowers offer effortless sophistication that never fades."
-
-# **Product Specifications**
-
-# [4-8 bullet points]
-
-# List all tangible product details pulled directly from the provided specs. Format each line as:
-# - Label: Value
-# Do not estimate or embellish any values.
-
-# **Kindly Note**
-
-# [3 bullet points]
-
-# Brief, friendly, practical notes that preempt common complaints and set accurate expectations. Cover: color variation due to lighting/photography, reshaping instructions for compressed items, and care/cleaning guidance. Tone: helpful and reassuring, not legalistic.
-
-# =============================================================
-# FORMATTING RULES
-# =============================================================
-# - The five section headers must appear exactly as written using markdown bold: **Kindly Note** and **Product Specifications**
-# - The three feature subheadings must also be bolded using markdown bold: e.g. **Timeless Elegant Design**
-# - Do not include any other bold text in the body copy
-# - Do not number or label the feature sections (no "1a", "1b", "Feature 1", "AESTHETIC APPEAL", etc.)
-# - Do not add any text outside of this structure
-
-# =============================================================
-# WRITING GUIDELINES
-# =============================================================
-
-# KEYWORDS: Weave provided keywords naturally into the copy. 
-
-# ACCURACY: Never invent specifications, dimensions, materials, or use cases. If a detail is not in the inputs, leave it out.
-
-# SPECIFICITY: Vague filler phrases like "high quality" or "perfect for any home" add nothing. Replace them with concrete, sensory, or situational details drawn from the inputs.
-
-# Describe product benefits positively without criticizing the buyer's existing setup; avoid negative framing like "if your space feels cold" or "tired of bland decor."
-
-# TONE: Positive and concise. Avoid overly flowery, melodramatic, or theatrical language like "more you," "transform your life," "hassle-free", 
-# or repetitive emphasis phrases. Keep tone simple, direct, and descriptive.
-
-# """
 
 product_description_instructions = """
 You are an expert Amazon copywriter for home decor products (artificial plants, flowers, picture frames, etc.).
