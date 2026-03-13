@@ -142,7 +142,7 @@ def initialize_product_data(product_name, subcategory):
     
     # Update session state
     st.session_state['bullet_clusters'] = data['bullet_clusters']
-    st.session_state['bullet_diagram'] = data['bullet_diagram']
+    st.session_state['bullet_diagram'] = data['bullet_diagram'].fillna(0)
     st.session_state['bullet_labels'] = data['bullet_labels']
     st.session_state['bullet_keywords'] = data['bullet_keywords']
     st.session_state['keyword_phrases'] = data['keyword_phrases']
