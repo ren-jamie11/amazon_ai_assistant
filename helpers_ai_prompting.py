@@ -435,7 +435,7 @@ Content guidelines:
 - Incorporate [keyword phrases], one after the subheading of each bullet, in same order as provided.
 - Follow [keyword phrases] by a strong verb (e.g., "features, "includes,", "uses", "offers" etc.) that connects the keyword to its description.
 - Keep each keyword phrase intact rather than splitting words apart (e.g. '4x6 bronze picture frame'). 
-- [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet.
+- [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet and used at most 1 time.
 - Include all numerical/dimension-related details from [product specs] in listing.
 - Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made earlier in the listing.
 - 2 sentences per bullet.
