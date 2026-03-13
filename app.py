@@ -593,7 +593,7 @@ with image_description_col:
 
         # Check if product_listings is empty
         if not st.session_state['product_listings_from_urls']:
-            st.session_state["listing_analysis"] = ""
+            st.warning("⚠️ No matching products found. Please include at least one valid Amazon product URL.")
         else:
             combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
             listing_prompt = feature_summary_from_url_prompt_simple.format(listing=combined_listing)
@@ -610,51 +610,51 @@ with image_description_col:
                     output=st.session_state["listing_analysis"],
                 )
 
-        # --- STEP 2: WRITE LISTING
-        
-        with st.spinner("Writing listing..."):
-            st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
-            generate_listing_prompt = listing_writer_instructions_gemini.format(
-                selected_product = selected_product,
-                product_specs = st.session_state['product_specs'],
-                keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
-                secondary_keywords = st.session_state['secondary_keywords'],
-                desirable_features =  st.session_state["listing_analysis"]
-            )
-
-            st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
-
-            start=time.time()
+            # --- STEP 2: WRITE LISTING
             
-            # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
-            #         model="gemini-3-flash-preview",
-            #         contents=generate_listing_prompt,
-            #         config=types.GenerateContentConfig(
-            #         thinking_config=types.ThinkingConfig(
-            #             thinking_level="MEDIUM" 
-            #         ),
-            #         temperature=0.2,
-            #                 )).text
+            with st.spinner("Writing listing..."):
+                st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
+                generate_listing_prompt = listing_writer_instructions_gemini.format(
+                    selected_product = selected_product,
+                    product_specs = st.session_state['product_specs'],
+                    keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
+                    secondary_keywords = st.session_state['secondary_keywords'],
+                    desirable_features =  st.session_state["listing_analysis"]
+                )
 
-            # st.write(generate_listing_prompt)
-            
-            # st.write(generate_listing_prompt)
-            st.session_state["ai_listing_draft"] = complete_phrase(
-                                client,
-                                generate_listing_prompt,
-                                model='gpt-5.1-2025-11-13',
-                                images=st.session_state.get('uploaded_images') or None
-                            )
-                            
-            log_to_sheets(
-                                function_name="write_listing_draft",
-                                input_prompt=generate_listing_prompt,
-                                output=st.session_state["ai_listing_draft"],
-                            )
-            
-            end = time.time()
-            elapsed = end-start
-            st.write(f"Request took {elapsed:.2f} seconds")
+                st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
+
+                start=time.time()
+                
+                # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
+                #         model="gemini-3-flash-preview",
+                #         contents=generate_listing_prompt,
+                #         config=types.GenerateContentConfig(
+                #         thinking_config=types.ThinkingConfig(
+                #             thinking_level="MEDIUM" 
+                #         ),
+                #         temperature=0.2,
+                #                 )).text
+
+                # st.write(generate_listing_prompt)
+                
+                # st.write(generate_listing_prompt)
+                st.session_state["ai_listing_draft"] = complete_phrase(
+                                    client,
+                                    generate_listing_prompt,
+                                    model='gpt-5.1-2025-11-13',
+                                    images=st.session_state.get('uploaded_images') or None
+                                )
+                                
+                log_to_sheets(
+                                    function_name="write_listing_draft",
+                                    input_prompt=generate_listing_prompt,
+                                    output=st.session_state["ai_listing_draft"],
+                                )
+                
+                end = time.time()
+                elapsed = end-start
+                st.write(f"Request took {elapsed:.2f} seconds")
 
     # if st.session_state["grammar_correct_search_terms"]:
     #     st.write("#### Keywords")
