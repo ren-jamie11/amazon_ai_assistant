@@ -8,7 +8,6 @@ entryway
 indoor
 decor
 floor
-tabletop
 corner
 planter
 pot

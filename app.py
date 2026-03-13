@@ -718,7 +718,7 @@ with ai_tools_col:
                 # Text input for OR filtering (at least one word must be present)
                 search_phrase_or = st.text_input(
                     "产品种类",
-                    placeholder="E.g. single stem, frame, mug cup",
+                    placeholder="E.g. tree, stem, mug cup",
                     key="phrase_filter_or"
                 )
                 
