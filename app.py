@@ -19,6 +19,7 @@ from google.genai import types
 
 import json
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -178,6 +179,7 @@ _WIDGET_KEYS_TO_CLEAR = [
 # Non-widget session state keys — safe to delete outright
 _STATE_KEYS_TO_DELETE = [
     "title_result",
+    "title_result_with_image",
     "ai_listing_draft",
     "photo_result",
     "suggestion_result",
@@ -369,6 +371,7 @@ gemini_client = get_gemini_client(st.secrets["GEMINI_KEY"])
 
 st.session_state.setdefault("photo_result", None)
 st.session_state.setdefault("title_result", None)
+st.session_state.setdefault("title_result_with_image", None)
 st.session_state.setdefault("suggestion_result", None)
 st.session_state.setdefault("synonym_result", None)
 st.session_state.setdefault("product_components_result", None)
@@ -752,10 +755,26 @@ with ai_tools_col:
 
                 user_input = st.session_state.get("input_keywords", "").strip()
 
+                def _gemini_title(contents):
+                    """Call Gemini with given contents and return text or None."""
+                    try:
+                        return gemini_client.models.generate_content(
+                            model="gemini-3-flash-preview",
+                            contents=contents,
+                            config=types.GenerateContentConfig(
+                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                max_output_tokens=100,
+                                temperature=0.2,
+                            )
+                        ).text
+                    except Exception:
+                        return None
+
                 def generate_product_title():
                     user_input = st.session_state.get("input_keywords", "").strip()
                     if not user_input:
                         st.session_state["title_result"] = ""
+                        st.session_state["title_result_with_image"] = ""
                         return
                     
                     # Extract singular words + top phrases from user input
@@ -773,29 +792,24 @@ with ai_tools_col:
                                                         example_product_titles=example_product_titles
                                                     )
 
+                    images = st.session_state.get('uploaded_images') or []
+
                     start = time.time()
-                    result = None
 
-                    # --- Gemini attempts ---
-                    try:
-                        images = st.session_state.get('uploaded_images') or []
-                        gemini_contents = [title_prompt] + images
+                    # --- Call Gemini in parallel: without images & with images ---
+                    with ThreadPoolExecutor(max_workers=2) as executor:
+                        future_no_img = executor.submit(_gemini_title, title_prompt)
+                        future_with_img = executor.submit(
+                            _gemini_title,
+                            [title_prompt] + images if images else title_prompt
+                        )
 
-                        result = gemini_client.models.generate_content(
-                            model="gemini-3-flash-preview",
-                            contents=gemini_contents,
-                            config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
-                                max_output_tokens=100,
-                                temperature=0.2,
-                            )
-                        ).text
+                        result_no_img = future_no_img.result()
+                        result_with_img = future_with_img.result()
 
-                    except Exception as e:
-                        st.warning(f"gemini-3-flash-preview failed: {e}")
-
-                    # --- GPT-5.1 fallback ---
-                    if result is None:
+                    # --- GPT-5.1 fallback (only for without-image version) ---
+                    if result_no_img is None:
+                        st.warning("gemini-3-flash-preview failed, falling back to GPT...")
 
                         title_prompt_gpt = title_generator_prompt_gpt.format(
                                                         selected_product=selected_product,
@@ -812,24 +826,32 @@ with ai_tools_col:
                                     st.warning(f"Retrying gpt-5.1 (attempt {attempt})...")
                                     time.sleep(wait)
 
-                                result = complete_phrase(
+                                result_no_img = complete_phrase(
                                     client,
                                     title_prompt_gpt,
                                     model='gpt-5.1',
-                                    images=st.session_state.get('uploaded_images') or None
+                                    images=None
                                 )
-                                break  # Success — exit retry loop
+                                break
 
                             except Exception as e:
                                 if attempt == 3:
                                     st.error("Unfortunately, both Gemini and ChatGPT failed at this time. Please try again later.")
 
-                    if result is not None:
-                        st.session_state["title_result"] = result
+                    if result_no_img is not None:
+                        st.session_state["title_result"] = result_no_img
                         log_to_sheets(
                             function_name="generate_title",
                             input_prompt=title_prompt,
-                            output=result,
+                            output=result_no_img,
+                        )
+
+                    if result_with_img is not None:
+                        st.session_state["title_result_with_image"] = result_with_img
+                        log_to_sheets(
+                            function_name="generate_title_with_image",
+                            input_prompt=title_prompt,
+                            output=result_with_img,
                         )
 
                     end = time.time()
@@ -850,11 +872,15 @@ with ai_tools_col:
                 st.markdown('Single keywords')
                 st.dataframe(bullet_keywords, height = 350, hide_index=True)
 
-                # Display title
+                # Display titles
                 if st.session_state["title_result"]:
                     st.write("")
-                    st.write("")
-                    st.markdown(f"**{st.session_state["title_result"]}**")
+                    st.write("Title without image")
+                    st.markdown(f"{st.session_state['title_result']}")
+
+                if st.session_state["title_result_with_image"]:
+                    st.write("Title with image")
+                    st.markdown(f"{st.session_state['title_result_with_image']}")
 
 
             # st.text_area("Final title", key = 'finished_product_title')
