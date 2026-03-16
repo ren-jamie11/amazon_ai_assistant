@@ -267,6 +267,7 @@ Constraints:
 - Do NOT include color, dimensions, style-related keywords more than 1 time (eg 5x7, 5 x 7, 10inch, blue, striped, rustic, minimalist)
 - No brand names.
 - You may ONLY use 2 commas (1st comma after product name, 2nd comma between [Primary Keywords + Dimension] and [Product-related noun phrase])
+- Formatting: Use title case!
 
 INPUT:
 
