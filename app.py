@@ -876,11 +876,11 @@ with ai_tools_col:
                 if st.session_state["title_result"]:
                     st.write("")
                     st.write("Title without image")
-                    st.markdown(f"{st.session_state['title_result']}")
+                    st.markdown(f"**{st.session_state['title_result']}**")
 
                 if st.session_state["title_result_with_image"]:
                     st.write("Title with image")
-                    st.markdown(f"{st.session_state['title_result_with_image']}")
+                    st.markdown(f"**{st.session_state['title_result_with_image']}**")
 
 
             # st.text_area("Final title", key = 'finished_product_title')
