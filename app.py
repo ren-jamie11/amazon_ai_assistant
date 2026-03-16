@@ -785,7 +785,7 @@ with ai_tools_col:
                             model="gemini-3-flash-preview",
                             contents=gemini_contents,
                             config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
                                 max_output_tokens=100,
                                 temperature=0.2,
                             )
