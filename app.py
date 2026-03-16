@@ -802,6 +802,7 @@ with ai_tools_col:
                     # --- GPT-5.1 fallback ---
                     if result is None:
                         st.write('Generating title with gpt')
+                        st.write(len(st.session_state.get('uploaded_images') or None))
                         for attempt in range(1, 4):
                             try:
                                 if attempt > 1:
