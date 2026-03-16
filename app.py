@@ -106,34 +106,6 @@ def concatenate_input():
     return full_listing
 
 
-def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
-    # Convert to list if string input
-    if isinstance(listing_search_terms, str):
-        listing_search_terms = listing_search_terms.split("\n")
-    
-    # Sort and get top N
-    listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
-    top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
-    
-    # Prepare prompt and call AI
-    fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
-    fix_keyword_response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents=fix_keyword_prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema={
-                "type": "ARRAY",
-                "items": {"type": "STRING"}
-            }
-        )
-    )
-    
-    # Parse and return
-    res = json.loads(fix_keyword_response.text)
-    res = capitalize_first(res)
-    
-    return res
 
 def initialize_product_data(product_name, subcategory):
     """Initialize or update all session state variables for a product."""
@@ -389,7 +361,8 @@ client = get_openai_client(st.secrets["OPENAI_KEY"])
 @st.cache_resource
 def get_gemini_client(api_key):
     if "gemini_client" not in st.session_state:
-        st.session_state.gemini_client = genai.Client(api_key=api_key)
+        st.session_state.gemini_client = genai.Client(api_key=api_key,
+                                                      http_options=types.HttpOptions(timeout=10_000))
     return st.session_state.gemini_client
 
 gemini_client = get_gemini_client(st.secrets["GEMINI_KEY"])
@@ -613,6 +586,39 @@ with image_description_col:
 
             # --- STEP 2: WRITE LISTING
             
+            def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
+                if isinstance(listing_search_terms, str):
+                    listing_search_terms = listing_search_terms.split("\n")
+                
+                # Sort and get top N
+                listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
+                top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
+                
+                # Prepare prompt
+                fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
+                
+                # Try Gemini, fall back to GPT on any failure
+                try:
+                    fix_keyword_response = gemini_client.models.generate_content(
+                        model="gemini-2.5-flash-lite", # Note: double check your model string too!
+                        contents=fix_keyword_prompt,
+                        # Config handles model behavior (JSON, schema, etc.)
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema={
+                                "type": "ARRAY",
+                                "items": {"type": "STRING"}
+                            },
+                        ),
+                    )
+                    res = json.loads(fix_keyword_response.text)
+                except Exception as e:
+                    gpt_response = complete_phrase(client, fix_keyword_prompt, model='gpt-5.1')
+                    res = [kw.strip() for kw in gpt_response.split(",") if kw.strip()]
+                
+                res = capitalize_first(res)
+                return res
+
             with st.spinner("Writing listing..."):
                 st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
                 generate_listing_prompt = listing_writer_instructions_gemini.format(
@@ -623,7 +629,7 @@ with image_description_col:
                     desirable_features =  st.session_state["listing_analysis"]
                 )
 
-                st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
+                # st.session_state["grammar_correct_search_terms"] = list(set(st.session_state["grammar_correct_search_terms"]))
 
                 start=time.time()
                 
