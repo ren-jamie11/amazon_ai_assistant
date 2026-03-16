@@ -357,13 +357,98 @@ def filter_by_phrase(input_phrase, df, length=None):
 
 
 
+# def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, length=None):
+#     """
+#     Filter dataframe rows based on keyword matching conditions.
+    
+#     Args:
+#         df: DataFrame with 'search_term' column
+#         input_phrase_and: String containing words that ALL must be present (optional)
+#         input_phrase_or: String containing words where AT LEAST ONE must be present (optional)
+#         length: Minimum number of words required in search_term (optional)
+        
+#     Returns:
+#         Filtered DataFrame
+#     """
+    
+#     def create_patterns(phrase):
+#         """Helper function to create regex patterns from a phrase."""
+#         if not phrase:
+#             return []
+        
+#         phrase_lower = phrase.lower()
+#         words = phrase_lower.split()
+#         patterns = []
+        
+#         for word in words:
+#             # Check if word is a dimension pattern (e.g., "5x7")
+#             if re.match(r'\d+x\d+', word):
+#                 # Make spaces around 'x' optional: 5x7, 5 x7, 5 x 7 all match
+#                 dimension_pattern = word.replace('x', r'\s*x\s*')
+#                 patterns.append(dimension_pattern)
+#             else:
+#                 # Regular word - just escape special regex characters
+#                 patterns.append(re.escape(word))
+        
+#         return patterns
+    
+#     # Create patterns for both phrase types
+#     patterns_and = create_patterns(input_phrase_and)
+#     patterns_or = create_patterns(input_phrase_or)
+    
+#     # Filter function to apply to each row
+#     def matches_conditions(search_term):
+#         if pd.isna(search_term):
+#             return False
+        
+#         search_term_lower = str(search_term).lower()
+        
+#         # Check AND condition: all patterns must be found
+#         if patterns_and:
+#             for pattern in patterns_and:
+#                 if not re.search(pattern, search_term_lower):
+#                     return False
+        
+#         # Check OR condition: at least one pattern must be found
+#         if patterns_or:
+#             found_any = False
+#             for pattern in patterns_or:
+#                 if re.search(pattern, search_term_lower):
+#                     found_any = True
+#                     break
+#             if not found_any:
+#                 return False
+        
+#         return True
+    
+#     # Count words function
+#     def count_words(search_term):
+#         if pd.isna(search_term):
+#             return 0
+        
+#         search_term_str = str(search_term)
+#         # Normalize dimension patterns (5x7, 5 x7, 5 x 7) to single word
+#         normalized = re.sub(r'\d+\s*x\s*\d+', 'DIMENSION', search_term_str)
+#         # Split by whitespace and count
+#         words = normalized.split()
+#         return len(words)
+    
+#     # Apply phrase filters
+#     filtered_df = df[df['search_term'].apply(matches_conditions)]
+    
+#     # Apply length filter if specified
+#     if length is not None:
+#         filtered_df = filtered_df[filtered_df['search_term'].apply(count_words) >= length]
+    
+#     return filtered_df
+
 def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, length=None):
     """
     Filter dataframe rows based on keyword matching conditions.
     
     Args:
         df: DataFrame with 'search_term' column
-        input_phrase_and: String containing words that ALL must be present (optional)
+        input_phrase_and: String containing words where AT LEAST ONE must be present (optional)
         input_phrase_or: String containing words where AT LEAST ONE must be present (optional)
         length: Minimum number of words required in search_term (optional)
         
@@ -372,7 +457,6 @@ def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, le
     """
     
     def create_patterns(phrase):
-        """Helper function to create regex patterns from a phrase."""
         if not phrase:
             return []
         
@@ -381,66 +465,33 @@ def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, le
         patterns = []
         
         for word in words:
-            # Check if word is a dimension pattern (e.g., "5x7")
             if re.match(r'\d+x\d+', word):
-                # Make spaces around 'x' optional: 5x7, 5 x7, 5 x 7 all match
                 dimension_pattern = word.replace('x', r'\s*x\s*')
                 patterns.append(dimension_pattern)
             else:
-                # Regular word - just escape special regex characters
                 patterns.append(re.escape(word))
         
         return patterns
     
-    # Create patterns for both phrase types
     patterns_and = create_patterns(input_phrase_and)
     patterns_or = create_patterns(input_phrase_or)
     
-    # Filter function to apply to each row
     def matches_conditions(search_term):
         if pd.isna(search_term):
             return False
         
         search_term_lower = str(search_term).lower()
         
-        # Check AND condition: all patterns must be found
+        # Both use OR logic: at least one pattern must match
         if patterns_and:
-            for pattern in patterns_and:
-                if not re.search(pattern, search_term_lower):
-                    return False
+            if not any(re.search(p, search_term_lower) for p in patterns_and):
+                return False
         
-        # Check OR condition: at least one pattern must be found
         if patterns_or:
-            found_any = False
-            for pattern in patterns_or:
-                if re.search(pattern, search_term_lower):
-                    found_any = True
-                    break
-            if not found_any:
+            if not any(re.search(p, search_term_lower) for p in patterns_or):
                 return False
         
         return True
-    
-    # Count words function
-    def count_words(search_term):
-        if pd.isna(search_term):
-            return 0
-        
-        search_term_str = str(search_term)
-        # Normalize dimension patterns (5x7, 5 x7, 5 x 7) to single word
-        normalized = re.sub(r'\d+\s*x\s*\d+', 'DIMENSION', search_term_str)
-        # Split by whitespace and count
-        words = normalized.split()
-        return len(words)
-    
-    # Apply phrase filters
-    filtered_df = df[df['search_term'].apply(matches_conditions)]
-    
-    # Apply length filter if specified
-    if length is not None:
-        filtered_df = filtered_df[filtered_df['search_term'].apply(count_words) >= length]
-    
-    return filtered_df
 
 
 capitalize_first = lambda lst: [re.sub(r'^([a-zA-Z])', lambda m: m.group(1).upper(), s) for s in lst]
