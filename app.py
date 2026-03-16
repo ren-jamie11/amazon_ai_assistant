@@ -776,28 +776,20 @@ with ai_tools_col:
                     start = time.time()
                     result = None
 
-                    # # --- Gemini attempts ---
-                    # for attempt in range(1, 3):
-                    #     try:
-                    #         if attempt > 1:
-                    #             wait = (attempt - 1) * 5
-                    #             st.warning(f"Retrying gemini-3-flash-preview (attempt {attempt})...")
-                    #             time.sleep(wait)
+                    # --- Gemini attempts ---
+                    try:
+                        result = gemini_client.models.generate_content(
+                            model="gemini-3-flash-preview",
+                            contents=title_prompt,
+                            config=types.GenerateContentConfig(
+                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                max_output_tokens=100,
+                                temperature=0.2,
+                            )
+                        ).text
 
-                    #         result = gemini_client.models.generate_content(
-                    #             model="gemini-3-flash-preview",
-                    #             contents=title_prompt,
-                    #             config=types.GenerateContentConfig(
-                    #                 thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
-                    #                 max_output_tokens=100,
-                    #                 temperature=0.2,
-                    #             )
-                    #         ).text
-                    #         break  # Success — exit retry loop
-
-                    #     except Exception as e:
-                    #         if attempt == 3:
-                    #             st.warning(f"gemini-3-flash-preview failed after 3 attempts: {e}")
+                    except Exception as e:
+                        st.warning(f"gemini-3-flash-preview failed: {e}")
 
                     # --- GPT-5.1 fallback ---
                     if result is None:
@@ -810,9 +802,6 @@ with ai_tools_col:
                                                         example_product_titles=example_product_titles
                                                     )
                         
-                        st.write('Generating title with gpt')
-                        st.write(len(st.session_state.get('uploaded_images') or None))
-                        st.write(title_prompt_gpt)
                         for attempt in range(1, 4):
                             try:
                                 if attempt > 1:

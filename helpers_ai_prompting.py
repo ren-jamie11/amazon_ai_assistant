@@ -220,7 +220,7 @@ INPUT:
 Top search terms:
 {top_search_terms}
 
-Primary Keywords
+Primary Keywords:
 {primary_keywords}
 
 Secondary Keywords:
@@ -274,7 +274,7 @@ INPUT:
 Top search terms:
 {top_search_terms}
 
-Primary Keywords
+Primary Keywords:
 {primary_keywords}
 
 Secondary Keywords:
