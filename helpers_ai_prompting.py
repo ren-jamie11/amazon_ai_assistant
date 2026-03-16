@@ -227,6 +227,7 @@ Secondary Keywords:
 {secondary_keywords}
 
 Do NOT include info relating to color or material that is not included in the above keyword list.
+Dimension or numerical keywords should only appear at most 1 time throughout entire product title.
 Make sure product title is strictly between 150-190 chars with spaces. 
 Your output (output only the title and nothing else):
 
