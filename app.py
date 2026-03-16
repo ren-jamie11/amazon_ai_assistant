@@ -779,7 +779,8 @@ with ai_tools_col:
                     # --- Gemini attempts ---
                     try:
                         images = st.session_state.get('uploaded_images') or []
-                        gemini_contents = [title_prompt] + images
+                        use_img = st.session_state.get('title_use_images', True)
+                        gemini_contents = [title_prompt] + images if (use_img and images) else title_prompt
 
                         result = gemini_client.models.generate_content(
                             model="gemini-3-flash-preview",
@@ -837,6 +838,7 @@ with ai_tools_col:
                     st.write(f"Request took {elapsed:.2f} seconds")
 
                 st.write("")
+                use_images = st.toggle("Use uploaded images", value=True, key="title_use_images")
                 
                 if st.button("Generate title"):
                     with st.spinner("Generating title..."):
