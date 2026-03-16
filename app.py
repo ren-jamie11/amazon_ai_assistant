@@ -278,7 +278,7 @@ def update_filter():
     else:
         st.session_state["displayed_images"] = filter_result.copy()
 
-with st.expander("Search for examples"):
+with st.expander("竞品库"):
 
     st.text_input(
         "Enter Label",
@@ -566,8 +566,15 @@ with image_description_col:
         st.session_state['product_listings_from_urls'] = bullet_labels[bullet_labels['ASIN'].isin(product_asins)]['bullet_points'].tolist()
 
         # Check if product_listings is empty
-        if not st.session_state['product_listings_from_urls']:
-            st.warning("⚠️ No matching products found. Please include at least one valid Amazon product URL.")
+        if not st.session_state['product_specs']:
+            st.warning("请先输入关产品规格")
+
+        elif not st.session_state['listing_bullet_keywords']:
+            st.warning("请先输入关键词 keywords")
+
+        elif not st.session_state['product_listings_from_urls']:
+            st.warning("请从竞品库选至少一个链接 url")
+
         else:
             combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
             listing_prompt = feature_summary_from_url_prompt_simple.format(listing=combined_listing)
@@ -857,9 +864,6 @@ with ai_tools_col:
                     st.write("")
                     st.write("")
                     st.markdown(f"**{st.session_state["title_result"]}**")
-
-
-            # st.text_area("Final title", key = 'finished_product_title')
         
         with condensor_tab:
             st.text_area(
