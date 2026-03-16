@@ -669,6 +669,9 @@ def get_top_n_search_terms(search_phrases, n=3, stop_words=STOP_WORDS):
     list
         List of up to n search phrases that contribute new words
     """
+    if len(search_phrases) <= n:
+        return search_phrases
+
     selected_phrases = []
     seen_words = set()
     
