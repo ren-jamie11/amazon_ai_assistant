@@ -801,8 +801,18 @@ with ai_tools_col:
 
                     # --- GPT-5.1 fallback ---
                     if result is None:
+
+                        title_prompt_gpt = title_generator_prompt_gpt.format(
+                                                        selected_product=selected_product,
+                                                        top_search_terms=", ".join(top_search_terms),
+                                                        primary_keywords=", ".join(primary_keywords),
+                                                        secondary_keywords=st.session_state['secondary_keywords'],
+                                                        example_product_titles=example_product_titles
+                                                    )
+                        
                         st.write('Generating title with gpt')
                         st.write(len(st.session_state.get('uploaded_images') or None))
+                        st.write(title_prompt_gpt)
                         for attempt in range(1, 4):
                             try:
                                 if attempt > 1:
@@ -812,7 +822,7 @@ with ai_tools_col:
 
                                 result = complete_phrase(
                                     client,
-                                    title_prompt,
+                                    title_prompt_gpt,
                                     model='gpt-5.1',
                                     images=st.session_state.get('uploaded_images') or None
                                 )

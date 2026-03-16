@@ -232,6 +232,62 @@ Your output (output only the title and nothing else):
 
 """
 
+title_generator_prompt_gpt = """
+You are an expert in writing SEO-optimized Amazon listings for {selected_product}. 
+I will provide you with 1-2 top search term, a list of primary and secondary keywords, as well as images of the product. 
+Your task is to write a professional Amazon-ready product title.
+Use singular tense (e.g. plant instead of plants). Length must be AT LEAST 150 chars and NO MORE THAN 190 chars with spaces.
+
+Strictly follow this structure:
+
+a) If product component keywords present (e.g. vase: handle, pot: drainage holes, picture frame: tabletop stand):  
+[Product Name] + , + [Primary Keywords + Dimensions] + with + [Core Features/Components] + , + [Product-related noun phrase] + for + [Occasions/Settings]
+
+b) Otherwise: [Product Name] + , + [Primary Keywords + Dimensions]  + , +  [Product-related noun phrase] + for + [Occasions/Settings]
+
+- Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
+- Primary Keywords: Place primary keywords and dimensions/numbers near front of title
+- Core features/components: Include component-related keywords ONLY if provided (e.g. vase with handle). Otherwise, no need.
+- Secondary keywords:  Include 3-4 setting/occasion-related keywords (not too many). that fit the context of the product.
+  See secondary keyword list and example product titles for reference.
+
+Example template: 8x10 Picture Frame Gold, Vintage Photo Display with Tabletop Stand and Wall Hanging Mounting, Decorative Frame for Home Office Gallery Wedding Gift Decor
+
+Insert commas between major sections: after product type/size, after key features, before gift/occasion details.
+Ensure attributes (e.g. microwave safe, UV-protective) modify the main product, not individual components 
+
+Example product titles:
+
+Ceramic Flower Vase, 12.5" Large Rustic Farmhouse Vases Home Decor, Tall Pottery Decorative Pampas Vase for Table Living Room Entryway Bathroom Kitchen
+
+Faux Magnolia Branches, 22 Inches Artificial Magnolia Leaves Stems Real Touch Faux Greenery for Home Office Room Table Vase Farmhouse Decor  
+
+Constraints:
+- You may use the same keyword only 1-2 times. 
+- Do NOT include color, dimensions, style-related keywords more than 1 time (eg 5x7, 5 x 7, 10inch, blue, striped, rustic, minimalist)
+- No brand names.
+- You may ONLY use 2 commas (1st comma after product name, 2nd comma between [Primary Keywords + Dimension] and [Product-related noun phrase])
+
+INPUT:
+
+Top search terms:
+{top_search_terms}
+
+Primary Keywords
+{primary_keywords}
+
+Secondary Keywords:
+{secondary_keywords}
+
+
+If provided in primary keywords or images, mention product specs (dimension, color, material etc.) 1 time only.
+Otherwise, if not provided, do not mention at all.
+
+Make sure product title is strictly between 150-190 chars with spaces. 
+Your output (output only the title and nothing else):
+
+"""
+
 additional_constraints = """
 Constraints:
 - Product title must be no more than 200 characters with spaces (strict limit)
