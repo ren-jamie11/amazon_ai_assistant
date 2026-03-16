@@ -838,7 +838,7 @@ with ai_tools_col:
                     st.write(f"Request took {elapsed:.2f} seconds")
 
                 st.write("")
-                use_images = st.toggle("Use uploaded images", value=True, key="title_use_images")
+                use_images = st.toggle("参考上传图片", value=True, key="title_use_images")
                 
                 if st.button("Generate title"):
                     with st.spinner("Generating title..."):
