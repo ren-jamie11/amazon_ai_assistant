@@ -778,11 +778,14 @@ with ai_tools_col:
 
                     # --- Gemini attempts ---
                     try:
+                        images = st.session_state.get('uploaded_images') or []
+                        gemini_contents = [title_prompt] + images
+
                         result = gemini_client.models.generate_content(
                             model="gemini-3-flash-preview",
-                            contents=title_prompt,
+                            contents=gemini_contents,
                             config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                thinking_config=types.ThinkingConfig(thinking_level="LOW"),
                                 max_output_tokens=100,
                                 temperature=0.2,
                             )
