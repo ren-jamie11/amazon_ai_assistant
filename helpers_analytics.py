@@ -289,8 +289,6 @@ def summarize_listing_keyword_stats(keywords: list[str], text: str):
     return total_keywords_unique, df
 
 
-
-
 def filter_by_phrase(input_phrase, df, length=None):
     """
     Filter dataframe rows where 'search_term' contains all words from input_phrase.
@@ -442,6 +440,7 @@ def filter_by_phrase(input_phrase, df, length=None):
     
 #     return filtered_df
 
+
 def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, length=None):
     """
     Filter dataframe rows based on keyword matching conditions.
@@ -482,7 +481,6 @@ def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, le
         
         search_term_lower = str(search_term).lower()
         
-        # Both use OR logic: at least one pattern must match
         if patterns_and:
             if not any(re.search(p, search_term_lower) for p in patterns_and):
                 return False
@@ -492,6 +490,24 @@ def filter_by_phrase_complex(df, input_phrase_and=None, input_phrase_or=None, le
                 return False
         
         return True
+    
+    def count_words(search_term):
+        if pd.isna(search_term):
+            return 0
+        
+        search_term_str = str(search_term)
+        normalized = re.sub(r'\d+\s*x\s*\d+', 'DIMENSION', search_term_str)
+        words = normalized.split()
+        return len(words)
+    
+    filtered_df = df[df['search_term'].apply(matches_conditions)]
+    if filtered_df.empty:
+        return df.iloc[0:0]
+    
+    if length is not None:
+        filtered_df = filtered_df[filtered_df['search_term'].apply(count_words) >= length]
+    
+    return filtered_df
 
 
 capitalize_first = lambda lst: [re.sub(r'^([a-zA-Z])', lambda m: m.group(1).upper(), s) for s in lst]
