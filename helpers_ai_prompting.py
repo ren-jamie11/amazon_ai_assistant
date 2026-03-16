@@ -245,7 +245,7 @@ a) If product component keywords present (e.g. vase: handle, pot: drainage holes
 
 b) Otherwise: [Product Name] + , + [Primary Keywords + Dimensions]  + , +  [Product-related noun phrase] + for + [Occasions/Settings]
 
-- Product Name: Use top search terms to begin the title with a concise 3 word product name (4 words max). 
+- Product Name: Use top search terms to begin the title with a concise 3 word product name (place any adjectives before nouns).
 - Primary Keywords: Place primary keywords and dimensions/numbers near front of title
 - Core features/components: Include component-related keywords ONLY if provided (e.g. vase with handle). Otherwise, no need.
 - Secondary keywords:  Include 3-4 setting/occasion-related keywords (not too many). that fit the context of the product.
@@ -279,7 +279,6 @@ Primary Keywords:
 
 Secondary Keywords:
 {secondary_keywords}
-
 
 If provided in primary keywords or images, mention product specs (dimension, color, material etc.) 1 time only.
 Otherwise, if not provided, do not mention at all.
