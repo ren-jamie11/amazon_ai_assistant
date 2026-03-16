@@ -777,19 +777,19 @@ with ai_tools_col:
                     result = None
 
                     # --- Gemini attempts ---
-                    # try:
-                    #     result = gemini_client.models.generate_content(
-                    #         model="gemini-3-flash-preview",
-                    #         contents=title_prompt,
-                    #         config=types.GenerateContentConfig(
-                    #             thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
-                    #             max_output_tokens=100,
-                    #             temperature=0.2,
-                    #         )
-                    #     ).text
+                    try:
+                        result = gemini_client.models.generate_content(
+                            model="gemini-3-flash-preview",
+                            contents=title_prompt,
+                            config=types.GenerateContentConfig(
+                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                                max_output_tokens=100,
+                                temperature=0.2,
+                            )
+                        ).text
 
-                    # except Exception as e:
-                    #     st.warning(f"gemini-3-flash-preview failed: {e}")
+                    except Exception as e:
+                        st.warning(f"gemini-3-flash-preview failed: {e}")
 
                     # --- GPT-5.1 fallback ---
                     if result is None:
