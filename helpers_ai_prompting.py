@@ -519,7 +519,7 @@ LISTING:
 
 listing_writer_instructions_gemini = """
 You are an assistant for Amazon listing writing for {selected_product}. I will provide you with images of the product, [product specs], [keyword phrases], 
-[secondary keywords] and [desirable features] that other similar products have.
+[secondary keywords] and [desirable features].
 
 Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
     1. Including info from [product specs]
@@ -574,7 +574,7 @@ USER INPUT
 
 {desirable_features}
 
-Include ALL of the desirable features accurately and precisely 1 time, staying true to its core wording and meaning. 
+Include ALL of the desirable features accurately and precisely 1 time, staying true to its core meaning. 
 
 Your output: 
 """
