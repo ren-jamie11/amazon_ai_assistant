@@ -989,3 +989,11 @@ def create_listing_docx(title, listing_content):
     docx_bytes.seek(0)
     
     return docx_bytes.getvalue()
+
+
+def fix_4_element_list_bug(phrase_list):
+    if len(phrase_list) != 4:
+        return phrase_list 
+    
+    last_element = next((s for s in phrase_list if re.fullmatch(r'[A-Za-z ]+', s)), None)
+    return phrase_list + [last_element]

@@ -633,16 +633,10 @@ with image_description_col:
             with st.spinner("Writing listing..."):
                 st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
                 
-                def fix_4_element_list_bug(phrase_list):
-                    if len(phrase_list) != 4:
-                        return phrase_list 
-                    
-                    last_element = next((s for s in phrase_list if re.fullmatch(r'[A-Za-z ]+', s)), None)
-                    return phrase_list + [last_element]
-
-                # Avoid weird bug where if 4 keywords...last subheading bugs out
-                if len(st.session_state["grammar_correct_search_terms"]) == 4:
-                    st.session_state["grammar_correct_search_terms"] = fix_4_element_list_bug(st.session_state["grammar_correct_search_terms"])
+    
+                # # Avoid weird bug where if 4 keywords...last subheading bugs out
+                # if len(st.session_state["grammar_correct_search_terms"]) == 4:
+                #     st.session_state["grammar_correct_search_terms"] = fix_4_element_list_bug(st.session_state["grammar_correct_search_terms"])
                 
                 generate_listing_prompt = listing_writer_instructions_gemini.format(
                     selected_product = selected_product,
