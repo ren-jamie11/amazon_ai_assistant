@@ -376,6 +376,44 @@ Constraints:
 # {listing}
 # """
 
+# feature_summary_from_url_prompt_simple = """
+# ROLE: You are an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
+# perform the following tasks:
+
+# From the listing bullets, identify, synthesize and summarize the products' most important 
+# specific desirable qualities as a list of short phrases.
+# Focus on concrete, tangible benefits over vague descriptors. Prioritize specific functional and aesthetic outcomes 
+# (e.g., "clear image display," "scratch-resistant surface," "holds fresh flowers upright") rather than vague claims (e.g., "transforms spaces," "adds charm," "elevates décor").
+
+# Extract ONLY the end-result benefit or quality — NOT the product component or mechanism that delivers it.
+# For example:
+# - "High-transparency real glass enables vivid color reproduction" → "vivid color reproduction"
+# - "Anti-corrosion treatment enables reliable use in humid spaces" → "reliable use in humid spaces"
+# - "Easy slide-in velvet backboard enables quick photo changes" → "quick, easy photo changes"
+
+# Exclude customer service, satisfaction guarantees, warranty, return policy, or 
+# support-related features — focus only on desirable end-result qualities.
+
+# Output 8-10 unique phrases in TOTAL (not for each individual listing). Each phrase must be 3-6 words describing the desirable quality only. Use high-impact positive language.
+
+# IMPORTANT: Extract only the functional benefit from listings, omitting any color (black, white, red), 
+# size (10oz, 12-inch), shape (round, square, oval), or number (6-pack, 4-piece) that may not apply to other product versions.
+
+# Example output of specific concrete benefits (eye mask):
+# 1. Comfortable and durable
+# 2. Blocks light effectively
+# 3. Zero eye pressure
+# 4  Promotes airflow and breathing
+# 5. ...
+
+# YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLETS (cannot assume information not included).
+# That is, I should be able to trace each output phrase back to a benefit mentioned in the listing.
+
+# LISTING: 
+
+# {listing}
+# """
+
 feature_summary_from_url_prompt_simple = """
 ROLE: You are an assistant Amazon sales copywriter. I will give you 1-3 product listings and you are to
 perform the following tasks:
@@ -406,8 +444,8 @@ Example output of specific concrete benefits (eye mask):
 4  Promotes airflow and breathing
 5. ...
 
-YOU MUST ONLY STRICTLY USE THE CONTENTS IN THE LISTING BULLETS (cannot assume information not included).
-That is, I should be able to trace each output phrase back to a benefit mentioned in the listing.
+Every output phrase must be directly traceable to a specific claim in the listing bullets;
+Never introduce benefits not explicitly stated in the source material.
 
 LISTING: 
 
@@ -416,27 +454,32 @@ LISTING:
 
 
 # listing_writer_instructions_gemini = """
-# You are an assistant for Amazon listing writing for {selected_product}. I will provide you with [product specs], [keyword phrases], [secondary keywords] and [desirable features].
+# You are an assistant for Amazon listing writing for {selected_product}. I will provide you with images of the product, [product specs], [keyword phrases], 
+# [secondary keywords] and [desired features] that other similar products have.
+
 # Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
 #     1. Including info from [product specs]
 #     2. Naturally incorporating [keyword phrases] and [secondary keywords] into listing (no need to precede with articles like 'a', 'an', 'the', 'this' etc.) 
-#     3. Communicating [desirable features] in 5 logically grouped bullet points (subheading 2-3 words)
-#        The subheading and content of each bullet should focus on 1 single theme (e.g. appearance, quality, ease of use)
+#     3. Identify [desired features] that are relevant to uploaded images and [product specs], and then
+#        communicate them im 5 logically grouped bullet points (subheading 2-3 words). 
+#        The subheading and content of each bullet should focus on 1 single theme that's either aesthetic (e.g. style) or functional (e.g. quality, versatility, durability)
+#        Place aesthetic-related subheadings before functional-related. 
 
 # Content guidelines: 
 # - Incorporate [keyword phrases], one after the subheading of each bullet, in same order as provided.
 # - Follow [keyword phrases] by a strong verb (e.g., "features, "includes,", "uses", "offers" etc.) that connects the keyword to its description.
 # - Keep each keyword phrase intact rather than splitting words apart (e.g. '4x6 bronze picture frame'). 
-# - [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet.
+# - [Secondary keywords] should be in the 2nd half of listing and towards the end of each bullet and used at most 1 time.
 # - Include all numerical/dimension-related details from [product specs] in listing.
 # - Each bullet point should present distinct information without redundancy. Never circle back to reinforce a point you've already made earlier in the listing.
 # - 2 sentences per bullet.
 
 # Constraints:
-# - Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). 
+# - Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). You must have exactly 2 sentences per bullet, separated by period '.'. 
 # - Only output the 5 bullets and nothing else (no need to write 'here is your listing'). Bold the subheadings for each bullet followed by ':'.
 # - Do NOT repeat the same keyword phrase more than 1 time. Do NOT include brand names. 
-# - You may NOT use 1st person (our, my).
+# - Use straightforward descriptive language like "shape,", "look," or "display" instead of 'silhouette' or 'vibes' or 'footprint'.
+# - Use 2nd person possessive "your" instead of indefinite words like "any" or "every" when describing settings and uses. Do NOT use 1st person.
 
 # Example: Emulate this tone/language style
 
@@ -464,27 +507,24 @@ LISTING:
 
 # {secondary_keywords}
 
-# [Desirable Features]
+# [desired features]
 
 # {desirable_features}
 
-# If desirable features conflict with product specs or the uploaded product images (e.g., color, dimension, material, shape, style), always prioritize the uploaded images and product specs — ignore the conflicting desirable feature.
-# The uploaded images are the ground truth for what the product actually looks like. If you can see specific colors, shapes, materials, or components in the images, use those details and discard any contradicting info from desirable features.
-# Otherwise, include ALL of the non-conflicting desirable features accurately and precisely, staying true to its core meaning. 
-# Only mention non-conflicting features 1 time in the entire listing (do not repeat).
+# Treat [desirable features] as suggestions, not strict requirements.
+# When appropriate, weave relevant desired features naturally and logically in the listing only 1 time without repetition.
 
 # Your output: 
 # """
 
 listing_writer_instructions_gemini = """
 You are an assistant for Amazon listing writing for {selected_product}. I will provide you with images of the product, [product specs], [keyword phrases], 
-[secondary keywords] and [desired features] that other similar products have.
+[secondary keywords] and [product features] that other similar products have.
 
 Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
     1. Including info from [product specs]
     2. Naturally incorporating [keyword phrases] and [secondary keywords] into listing (no need to precede with articles like 'a', 'an', 'the', 'this' etc.) 
-    3. Identify [desired features] that are relevant to uploaded images and [product specs], and then
-       communicate them im 5 logically grouped bullet points (subheading 2-3 words). 
+    3. Communicating [product features] in 5 logically grouped bullet points (subheading 2-3 words). 
        The subheading and content of each bullet should focus on 1 single theme that's either aesthetic (e.g. style) or functional (e.g. quality, versatility, durability)
        Place aesthetic-related subheadings before functional-related. 
 
@@ -530,12 +570,11 @@ USER INPUT
 
 {secondary_keywords}
 
-[desired features]
+[product features]
 
 {desirable_features}
 
-Treat [desirable features] as suggestions, not strict requirements.
-When appropriate, weave relevant desired features naturally and logically in the listing only 1 time without repetition.
+Weave each [product features] naturally and logically in the listing only 1 time without repetition.
 
 Your output: 
 """
