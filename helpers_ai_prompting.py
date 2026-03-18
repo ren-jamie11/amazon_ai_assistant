@@ -51,13 +51,8 @@ FORMATTING REQUIREMENTS:
 - Prioritize factual specifications over marketing language
 - If multiple images show the same product, consolidate information without duplication
 - Do NOT include brand names
+- Do NOT capitalize dimensions (e.g. ft instead of FT)
 - Prioritize including ALL numerical dimensions mentioned in image
-
-Standardize measurements from images:
-- Length: " or 'inches' for inches, 'ft' for feet, cm or m for centimeter/meter
-- Weight: "lb" or "oz" (not #, pound, OZ, LB)
-- Volume: "oz", "ml", "l" (not fl oz, FL OZ, ML)
-- Format dimensions as "5x7" (not 5 x 7, 5"x7")
 
 EXAMPLES:
 - Gold ornate metal frame
@@ -68,7 +63,7 @@ EXAMPLES:
 - 6ft artificial olive tree
 - Frosted green eucalyptus leaves
 - Black rectangular ceramic pot, 7.08"×4.72" base
-- Overall height 6.49" (16.5cm)
+- Overall height 6.49 inches (16.5cm)
 - Decorative river pebbles in vase
 - Protective film on both sides (peel before use)
 
