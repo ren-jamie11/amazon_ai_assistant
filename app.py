@@ -1013,4 +1013,3 @@ with ai_tools_col:
         st.write(st.session_state["product_description_result"])
 
 
-st.write(len(st.session_state['uploaded_images']))
