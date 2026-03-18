@@ -487,6 +487,8 @@ with image_description_col:
 
         if uploaded_images:
             st.session_state['uploaded_images'] = load_images(uploaded_images)
+        else:
+            st.session_state['uploaded_images'] = []
             
             # Create tab names: image_1, image_2, ...
             tab_names = [f"Image {i+1}" for i in range(len(st.session_state['uploaded_images']))]
@@ -999,7 +1001,6 @@ with ai_tools_col:
     if st.session_state["product_description_result"]:
         st.write("#### Product Description")
         st.write(st.session_state["product_description_result"])
-
 
 
 st.write(len(st.session_state['uploaded_images']))
