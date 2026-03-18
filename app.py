@@ -666,6 +666,7 @@ with image_description_col:
 
                 # st.write(generate_listing_prompt)
                 
+                
                 # st.write(generate_listing_prompt)
                 # old model gpt-5.4-2026-03-05 gpt-5.1-2025-11-13'
                 st.session_state["ai_listing_draft"] = complete_phrase(
