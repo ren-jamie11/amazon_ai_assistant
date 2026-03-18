@@ -485,11 +485,10 @@ with image_description_col:
             on_change=sync_photo_results
         )
 
-        if uploaded_images:
-            st.session_state['uploaded_images'] = load_images(uploaded_images)
-        else:
+        if not uploaded_images:
             st.session_state['uploaded_images'] = []
-            
+        else:
+            st.session_state['uploaded_images'] = load_images(uploaded_images)
             # Create tab names: image_1, image_2, ...
             tab_names = [f"Image {i+1}" for i in range(len(st.session_state['uploaded_images']))]
 
