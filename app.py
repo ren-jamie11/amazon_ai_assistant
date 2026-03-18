@@ -819,7 +819,7 @@ with ai_tools_col:
 
                     # --- GPT-5.1 fallback ---
                     if result is None:
-
+                        st.write("gpt backup")
                         title_prompt_gpt = title_generator_prompt_gpt.format(
                                                         selected_product=selected_product,
                                                         top_search_terms=", ".join(top_search_terms),
