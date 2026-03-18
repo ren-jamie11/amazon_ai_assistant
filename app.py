@@ -566,7 +566,9 @@ with image_description_col:
         st.session_state['product_listings_from_urls'] = bullet_labels[bullet_labels['ASIN'].isin(product_asins)]['bullet_points'].tolist()
 
         # Check if product_listings is empty
-        if not st.session_state['product_specs']:
+        if not st.session_state.get('uploaded_images'):
+            st.warning("请先上传产品图")
+        elif not st.session_state['product_specs']:
             st.warning("请先输入关产品规格")
 
         elif not st.session_state['listing_bullet_keywords']:
