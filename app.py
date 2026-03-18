@@ -764,6 +764,11 @@ with ai_tools_col:
                     if not user_input:
                         st.session_state["title_result"] = ""
                         return
+
+                    # If "Use uploaded images" is on but no images exist, block generation
+                    if st.session_state.get('title_use_images', True) and not st.session_state.get('uploaded_images'):
+                        st.warning("请先上传产品图")
+                        return
                     
                     # Extract singular words + top phrases from user input
                     search_terms = user_input.split("\n")
