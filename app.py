@@ -493,31 +493,32 @@ with image_description_col:
             # Create tab names: image_1, image_2, ...
             tab_names = [f"Image {i+1}" for i in range(len(st.session_state['uploaded_images']))]
 
-            tabs = st.tabs(tab_names)
+            if len(tab_names) > 0:
+                tabs = st.tabs(tab_names)
 
-            # Put each image into its own tab
-            for i, (tab, img) in enumerate(zip(tabs, st.session_state['uploaded_images'])):
-                with tab:
-                    st.image(img, caption=f"Image {i+1}", use_container_width=True)
+                # Put each image into its own tab
+                for i, (tab, img) in enumerate(zip(tabs, st.session_state['uploaded_images'])):
+                    with tab:
+                        st.image(img, caption=f"Image {i+1}", use_container_width=True)
 
 
-            if st.button("Generate description", key="generate_product_description_from_images"):
-                # Progress bar
-                progress = st.progress(0)
+                if st.button("Generate description", key="generate_product_description_from_images"):
+                    # Progress bar
+                    progress = st.progress(0)
 
-                # Process all images in a single API call
-                result = process_multiple_images(
-                    st.session_state['uploaded_images'],
-                    client,
-                    "You are an expert at extracting product specifications and features from product images for Amazon listings",
-                    image_specs_instructions
-                )
+                    # Process all images in a single API call
+                    result = process_multiple_images(
+                        st.session_state['uploaded_images'],
+                        client,
+                        "You are an expert at extracting product specifications and features from product images for Amazon listings",
+                        image_specs_instructions
+                    )
 
-                # Store result in session state
-                st.session_state['product_specs'] = result
-                
-                # Complete progress
-                progress.progress(1.0)
+                    # Store result in session state
+                    st.session_state['product_specs'] = result
+                    
+                    # Complete progress
+                    progress.progress(1.0)
 
 
     # Initialize product_specs in session_state if it doesn't exist
