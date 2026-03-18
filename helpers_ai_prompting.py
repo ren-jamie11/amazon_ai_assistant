@@ -522,7 +522,7 @@ You are an assistant for Amazon listing writing for {selected_product}. I will p
 [secondary keywords] and [desirable features].
 
 Your task is to write a factually accurate SEO-optimized Amazon listing that appeals to customers by:
-    1. Including info from [product specs]
+    1. Including ALL info from [product specs]
     2. Naturally incorporating [keyword phrases] and [secondary keywords] into listing (no need to precede with articles like 'a', 'an', 'the', 'this' etc.) 
     3. Communicating [desirable features] in 5 logically grouped bullet points (subheading 2-3 words without commas). 
        The subheading and content of each bullet should focus on 1 single theme that's either aesthetic (e.g. style) or functional (e.g. quality, versatility, durability)
