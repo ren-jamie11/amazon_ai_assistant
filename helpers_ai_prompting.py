@@ -501,7 +501,7 @@ Constraints:
 - Produce 5 bullets. Each bullet MUST be within 250-300 characters long (with spaces). You must have exactly 2 sentences per bullet, separated by period '.'. 
 - Only output the 5 bullets and nothing else (no need to write 'here is your listing'). Bold the subheadings for each bullet followed by ':'.
 - Do NOT repeat the same keyword phrase more than 1 time. Do NOT include brand names. 
-- Use straightforward descriptive language like "shape,", "look," or "display" instead of 'silhouette' or 'vibes'.
+- Use straightforward descriptive language like "shape,", "look," or "display" instead of 'silhouette' or 'vibes' or 'footprint'.
 - Use 2nd person possessive "your" instead of indefinite words like "any" or "every" when describing settings and uses. Do NOT use 1st person.
 
 Example: Emulate this tone/language style
