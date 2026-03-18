@@ -574,6 +574,8 @@ USER INPUT
 
 {desirable_features}
 
+Include each specific measurement or dimension (e.g. "6 inch diameter", 10 oz capacity) only once in the entire listing. 
+DO NOT REPEAT the same numerical value in multiple bullets.
 Include ALL of the desirable features accurately and precisely 1 time, staying true to its core meaning. 
 
 Your output: 
