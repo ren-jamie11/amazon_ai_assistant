@@ -799,23 +799,23 @@ with ai_tools_col:
                     result = None
 
                     # --- Gemini attempts ---
-                    try:
-                        images = st.session_state.get('uploaded_images') or []
-                        use_img = st.session_state.get('title_use_images', True)
-                        gemini_contents = [title_prompt] + images if (use_img and images) else title_prompt
+                    # try:
+                    #     images = st.session_state.get('uploaded_images') or []
+                    #     use_img = st.session_state.get('title_use_images', True)
+                    #     gemini_contents = [title_prompt] + images if (use_img and images) else title_prompt
 
-                        result = gemini_client.models.generate_content(
-                            model="gemini-3-flash-preview",
-                            contents=gemini_contents,
-                            config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
-                                max_output_tokens=100,
-                                temperature=0.2,
-                            )
-                        ).text
+                    #     result = gemini_client.models.generate_content(
+                    #         model="gemini-3-flash-preview",
+                    #         contents=gemini_contents,
+                    #         config=types.GenerateContentConfig(
+                    #             thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+                    #             max_output_tokens=100,
+                    #             temperature=0.2,
+                    #         )
+                    #     ).text
 
-                    except Exception as e:
-                        st.warning(f"gemini-3-flash-preview failed: {e}")
+                    # except Exception as e:
+                    #     st.warning(f"Using GPT backup...")
 
                     # --- GPT-5.1 fallback ---
                     if result is None:
@@ -832,13 +832,13 @@ with ai_tools_col:
                             try:
                                 if attempt > 1:
                                     wait = (attempt - 1) * 10
-                                    st.warning(f"Retrying gpt-5.1 (attempt {attempt})...")
+                                    st.warning(f"Retrying gpt (attempt {attempt})...")
                                     time.sleep(wait)
 
                                 result = complete_phrase(
                                     client,
                                     title_prompt_gpt,
-                                    model='gpt-5.1',
+                                    model='gpt-5.4-2026-03-05',
                                     images=st.session_state.get('uploaded_images') or None
                                 )
                                 break  # Success — exit retry loop
