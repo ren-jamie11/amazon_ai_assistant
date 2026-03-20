@@ -278,7 +278,7 @@ def update_filter():
     else:
         st.session_state["displayed_images"] = filter_result.copy()
 
-with st.expander("竞品库"):
+with st.expander(f"竞品库 ({len(st.session_state['bullet_labels'])})"):
 
     st.text_input(
         "Enter Label",
