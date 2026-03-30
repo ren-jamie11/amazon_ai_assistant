@@ -591,7 +591,7 @@ with image_description_col:
                 )
                 log_to_sheets(
                     function_name="analyze_listing",
-                    input_prompt=listing_prompt,
+                    input_prompt=", ".join(product_urls),
                     output=st.session_state["listing_analysis"],
                 )
 
@@ -672,7 +672,11 @@ with image_description_col:
                                 
                 log_to_sheets(
                                     function_name="write_listing_draft",
-                                    input_prompt=generate_listing_prompt,
+                                    input_prompt=(
+                                        "specs:\n" + st.session_state.get('product_specs', '') +
+                                        "\nlisting analysis:\n" + st.session_state.get('listing_analysis', '') +
+                                        "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
+                                    ),
                                     output=st.session_state["ai_listing_draft"],
                                 )
                 
@@ -851,7 +855,7 @@ with ai_tools_col:
                         st.session_state["title_result"] = result
                         log_to_sheets(
                             function_name="generate_title",
-                            input_prompt=title_prompt,
+                            input_prompt=user_input,
                             output=result,
                         )
 
@@ -926,7 +930,11 @@ with ai_tools_col:
                     )
                     log_to_sheets(
                         function_name="generate_product_description",
-                        input_prompt=description_prompt,
+                        input_prompt=(
+                            "specs:\n" + st.session_state.get("product_specs", "") +
+                            "\nkeywords:\n" + combined_keywords +
+                            "\nlisting draft:\n" + st.session_state.get("ai_listing_draft", "")
+                        ),
                         output=st.session_state["product_description_result"],
                     )
 
@@ -1007,5 +1015,3 @@ with ai_tools_col:
     if st.session_state["product_description_result"]:
         st.write("#### Product Description")
         st.write(st.session_state["product_description_result"])
-
-
