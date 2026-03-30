@@ -41,12 +41,12 @@ def get_log_sheet():
     # Add header row if sheet is empty
     if sheet.row_count == 0 or sheet.cell(1, 1).value != "timestamp":
         sheet.insert_row(
-            ["timestamp", "user", "function_name", "input_prompt", "output"],
+            ["timestamp", "user", "function_name", "input_prompt", "output", "images_used"],
             index=1
         )
     return sheet
 
-def log_to_sheets(function_name: str, input_prompt: str, output: str):
+def log_to_sheets(function_name: str, input_prompt: str, output: str, images_used: int = 0):
     """Append a log row to the Google Sheet. Silently skips on error."""
     try:
         sheet = get_log_sheet()
@@ -56,6 +56,7 @@ def log_to_sheets(function_name: str, input_prompt: str, output: str):
             function_name,
             input_prompt,
             output,
+            images_used,
         ])
     except Exception as e:
         st.warning(f"⚠️ Logging failed: {e}")
@@ -678,6 +679,7 @@ with image_description_col:
                                         "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
                                     ),
                                     output=st.session_state["ai_listing_draft"],
+                                    images_used=len(st.session_state.get('uploaded_images') or []),
                                 )
                 
                 end = time.time()
@@ -857,6 +859,7 @@ with ai_tools_col:
                             function_name="generate_title",
                             input_prompt=user_input,
                             output=result,
+                            images_used=len(st.session_state.get('uploaded_images') or []),
                         )
 
                     end = time.time()
