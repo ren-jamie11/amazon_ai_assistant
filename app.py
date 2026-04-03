@@ -41,7 +41,7 @@ def get_log_sheet():
     # Add header row if sheet is empty
     if sheet.row_count == 0 or sheet.cell(1, 1).value != "timestamp":
         sheet.insert_row(
-            ["timestamp", "user", "function_name", "input_prompt", "output", "images_used"],
+            ["timestamp", "user", "subcategory", "function_name", "input_prompt", "output", "images_used"],
             index=1
         )
     return sheet
@@ -53,6 +53,7 @@ def log_to_sheets(function_name: str, input_prompt: str, output: str, images_use
         sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             st.session_state.get("current_user", "unknown"),
+            st.session_state.get("subcategory_selector", ""),
             function_name,
             input_prompt,
             output,
