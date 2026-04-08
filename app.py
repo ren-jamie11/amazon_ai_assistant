@@ -53,7 +53,7 @@ def log_to_sheets(function_name: str, input_prompt: str, output: str, images_use
         sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             st.session_state.get("current_user", "unknown"),
-            st.session_state.get("subcategory_selector", ""),
+            st.session_state.get("product_selector", ""),
             function_name,
             input_prompt,
             output,
