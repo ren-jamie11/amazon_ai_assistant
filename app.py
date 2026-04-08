@@ -759,7 +759,7 @@ with ai_tools_col:
                     title_filtered_df = filter_by_phrase_final(
                         keyword_phrases,
                         input_phrase_and=search_phrase_and if search_phrase_and.strip() else None,
-                        input_phrase_or=search_phrase_or if search_phrase_or.strip() else None
+                        input_phrase_or=search_phrase_or if search_phrase_or.strip() else None, ignore_plural=False
                     )
                     title_filtered_df = title_filtered_df.sort_values(by = 'monthly_searches', ascending = False)
                     st.dataframe(title_filtered_df, height=352, hide_index=True)
