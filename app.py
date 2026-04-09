@@ -879,8 +879,8 @@ with ai_tools_col:
                 st.write("#####")
                 for i in range(8):
                     st.write('')
-                st.markdown('Single keywords')
-                st.dataframe(bullet_keywords, height = 350, hide_index=True)
+                st.markdown('场景词')
+                st.dataframe(bullet_keywords[bullet_keywords.keyword.isin(st.session_state['secondary_keywords'])], height = 350, hide_index=True)
 
                 # Display title
                 if st.session_state["title_result"]:
