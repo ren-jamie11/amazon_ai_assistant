@@ -503,7 +503,7 @@ with image_description_col:
                         st.image(img, caption=f"Image {i+1}", use_container_width=True)
 
 
-                if st.button("Generate description", key="generate_product_description_from_images"):
+                if st.button("分析图片", key="generate_product_description_from_images"):
                     # Progress bar
                     progress = st.progress(0)
 
