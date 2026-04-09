@@ -546,7 +546,10 @@ with image_description_col:
             )
 
     with keyword_col:
-        st.text_area("Keywords", height=240, key='listing_bullet_keywords')
+        st.text_area("搜索词", height=240, 
+                     key='listing_bullet_keywords',
+                     placeholder="e.g. gold picture frame, rustic ceramic vase",
+                     help = "会写在listing每个卖点最前面. \n 产品特点的词应写在'产品信息'")
 
 
     # Generate listing!
@@ -769,11 +772,11 @@ with ai_tools_col:
                 
                 # User enters keywords 
                 st.text_area(
-                    "搜索词",
-                    placeholder="e.g. picture, frame, gold, ornate",
+                    "Keywords",
+                    placeholder="e.g. white ceramic vase, artificial hydrangea stems",
                     key="input_keywords",
                     height=240,
-                    help = "会写在每个listing卖点最前面. \n 产品特点的词应写在'产品信息'里"
+                    help = "AI 生成标题时会按搜索量排序"
                 )
 
                 user_input = st.session_state.get("input_keywords", "").strip()
