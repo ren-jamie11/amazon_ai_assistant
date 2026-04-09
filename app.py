@@ -764,6 +764,7 @@ with ai_tools_col:
                     title_filtered_df = title_filtered_df.sort_values(by = 'monthly_searches', ascending = False)
                     st.dataframe(title_filtered_df, height=352, hide_index=True)
                 else:
+                    st.write(len(keyword_phrases))
                     st.dataframe(keyword_phrases, height=352, hide_index=True)
                 
                 # User enters keywords 
