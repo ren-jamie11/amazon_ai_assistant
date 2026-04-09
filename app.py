@@ -531,9 +531,10 @@ with image_description_col:
     with facts_col:
         # Specs
         st.text_area(
-            "Specs",
+            "产品信息",
             key = 'product_specs',
-            height=240
+            height=240,
+            help="规格，特点，参数，尺寸等等"
         )
 
         # Product URLs
