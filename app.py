@@ -546,7 +546,7 @@ with image_description_col:
             )
 
     with keyword_col:
-        st.text_area("搜索词", height=240, 
+        st.text_area("重点关键词", height=240, 
                      key='listing_bullet_keywords',
                      placeholder="e.g. gold picture frame, rustic ceramic vase",
                      help = "会写在listing每个卖点最前面")
