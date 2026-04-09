@@ -531,9 +531,8 @@ def filter_by_phrase_final(df, input_phrase_and=None, input_phrase_or=None,
                            search_term_col='search_term', keyword_rank_by='monthly_searches', ignore_plural=True):
 
     all_keywords = filter_by_phrase_complex(df, input_phrase_and, input_phrase_or).sort_values(by = keyword_rank_by, ascending = False)
-    # res = filter_unique_keyword_phrases(all_keywords, search_term_col, keyword_rank_by, ignore_plural)
-    
-    return all_keywords
+    res = filter_unique_keyword_phrases(all_keywords, search_term_col, keyword_rank_by, ignore_plural)
+    return res
     
 
 def sort_search_terms(search_terms, df, rank_by='monthly_searches'):
