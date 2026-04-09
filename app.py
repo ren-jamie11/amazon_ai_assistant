@@ -549,7 +549,7 @@ with image_description_col:
         st.text_area("搜索词", height=240, 
                      key='listing_bullet_keywords',
                      placeholder="e.g. gold picture frame, rustic ceramic vase",
-                     help = "会写在listing每个卖点最前面. \n 产品特点的词应写在'产品信息'")
+                     help = "会写在listing每个卖点最前面. \n 产品特点的词可以写在'产品信息'")
 
 
     # Generate listing!
