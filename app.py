@@ -534,7 +534,7 @@ with image_description_col:
             "产品信息",
             key = 'product_specs',
             height=240,
-            help="规格，特点，参数，尺寸等等"
+            help="规格，特点，参数，尺寸，套数等等"
         )
 
         # Product URLs
