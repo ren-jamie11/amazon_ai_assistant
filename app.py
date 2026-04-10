@@ -216,7 +216,7 @@ if "current_product" not in st.session_state or st.session_state["current_produc
 
     # Initialize displayed_images with first 24 rows
     initial_df = st.session_state['bullet_labels']
-    st.session_state["displayed_images"] = initial_df.head(24) if len(initial_df) > 24 else initial_df.copy()
+    st.session_state["displayed_images"] = initial_df.head(100) if len(initial_df) > 100 else initial_df.copy()
 
 # --- Access session state variables (same names as before) ---
 label_dict = st.session_state['label_dict']
