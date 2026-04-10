@@ -273,7 +273,7 @@ def update_filter():
         st.session_state['bullet_labels'], label
     )
     # Update displayed images automatically on filter change
-    DISPLAY_NUMBER = 50
+    DISPLAY_NUMBER = 100
     filter_result = st.session_state["filtered"]
     if len(filter_result) > DISPLAY_NUMBER:
         st.session_state["displayed_images"] = filter_result.head(DISPLAY_NUMBER)
@@ -293,7 +293,7 @@ with st.expander(f"竞品库 ({len(st.session_state['bullet_labels'])})"):
     if "filtered" in st.session_state:
         filtered_df = st.session_state["filtered"]
 
-    DISPLAY_NUMBER = 50
+    DISPLAY_NUMBER = 100
 
     # Render images from session state (outside button block so they persist)
     if "displayed_images" in st.session_state:
