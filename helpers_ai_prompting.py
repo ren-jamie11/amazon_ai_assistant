@@ -720,3 +720,41 @@ ACCURACY: Never invent specs, dimensions, materials, or use cases.
 Describe benefits positively — do not criticize the buyer's current setup (avoid "if your space feels cold" or "tired of bland decor").
 When appropriate, include [keywords] and [desirable features] that [Bullet Point Listing] missed. 
 """
+
+
+usage_keywords_generator_prompt = """
+    You are a retail salesperson working at Target. Given the product in the image, 
+    I want you to help me provide a list of usage scenario keywords that helps inspire or inform customers 
+    on where or how they may use the product.
+
+    Provide the top 4-5 usage scenario keywords for each of the following categories:
+    - Spaces (e.g. bedroom, living room, office)
+    - Placement settings (e.g. shelf, desk)
+    - Gift occasions (e.g. Christmas, weddings)
+    - What to display: What kinds of items this product is suitable for displaying (e.g. wedding photos, pet pictures, art pieces)
+
+    Guidelines:
+    - Select/rank keywords based on popular/mainstream behavior for middle class housewives in the United States
+    - Keyword choices should be tailored, relevant, and appropriate to this specific product.
+    - Keywords should be 1-2 words in length
+    
+    Note: Keywords must reflect the specific style and characteristics of the product in the image. 
+    For example, a rustic walnut frame and a sleek gold metallic frame are both "picture frames" but 
+    are suited for different rooms, occasions, and display purposes.
+
+    Note: Before suggesting any placement or space, evaluate the product's physical dimensions and form factor 
+    (size, weight, hanging components etc.) to ensure suggestions are physically and practically realistic. 
+    For example, a 5-foot artificial tree belongs on the floor in a corner — not on a nightstand or desk surface. 
+    Match keywords to where the product would actually be used in a real home.
+
+    Output format (do not include any additional text):
+    - keyword_1 for category 1
+    ...
+    -keyword_k for category 1
+
+    - keyword_1 for category n
+    ...
+    - keyword_k for category n
+
+    Separate category keywords by a line break.
+    """
