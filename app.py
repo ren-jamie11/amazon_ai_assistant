@@ -388,15 +388,18 @@ st.session_state.setdefault("cleaned_keywords", "")
 st.session_state.setdefault("grammar_correct_search_terms", "")
 st.session_state.setdefault("product_listings_from_urls", [])
 st.session_state.setdefault("product_specs", "")
+st.session_state.setdefault("product_reviews_summary", "")
+st.session_state.setdefault("usage_keywords_from_reviews", "")
+st.session_state.setdefault("combined_reviews_output", "")
+
 st.session_state.setdefault("listing_analysis", "")
+st.session_state.setdefault("product_info_synthesis", "")
 st.session_state.setdefault("ai_listing_draft", "")
 st.session_state.setdefault("product_description_result", "")
 
+st.session_state.setdefault("rainforest_asin_json", {})
 st.session_state.setdefault("uploaded_images", [])
 
-# Listing optimizer
-st.session_state.setdefault("input_listing", None)
-st.session_state.setdefault("optimized_listing", None)
 
 image_description_col, _, ai_tools_col = st.columns([5, 1, 8])
 
