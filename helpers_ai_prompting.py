@@ -748,7 +748,8 @@ Group phrases under these headings, in this order:
    - **Recipients**: who it's intended for (mom, dad, husband, teacher, kids)
    - **Compatible items**: what the product is designed to hold, display, or work with (picture frame → wedding photos, pet pictures, art prints; mug → coffee, tea, latte; vase → fresh flowers, pampas grass, dried plants)
    
-   Include at most 3 keywords per subcategory; if more apply, keep the first 3.
+   Exclude vague catch-all keywords ("home decor", "decoration", "any space"); keep only specific, concrete terms.
+   Include at most 3 keywords per subcategory; if more apply, keep the first 3. 
 
    Format examples:
    - "Fits in: bedroom, living room, home office"
@@ -978,11 +979,13 @@ You write SEO-optimized Amazon listings for home decor products. The user provid
 
 Each bullet covers one theme, in this order:
 
-1. **Aesthetic** — Visual appeal, design, style, finish. Paint a vivid image.
+1. **Aesthetic** — Visual appeal, design, style, finish. Paint a vivid image. Describes how the product *looks*.
 2. **Dimensions** — All measurements and numerical specs. *This is the only bullet that may contain numbers or measurements.*
-3. **Material** — Material type, quality, and functional benefits tied to the material.
+3. **Material** — Material type and quality, plus tactile/physical properties (how it *feels*, *behaves*, or *holds up*). Do not describe visual appearance here — that belongs in the Aesthetic bullet. If the same component (e.g. petals, leaves) was already mentioned in Aesthetic, focus here on a different sensory or physical dimension (texture, durability, weight, flexibility, etc.).
 4. **Functional Benefit** — One distinct core benefit, separate from anything material-related.
 5. **Maintenance, Packaging, OR Gifting** — Pick the one most relevant to the product.
+
+Each bullet must contain distinct, non-overlapping information.
 
 ## Bullet Format
 
@@ -991,7 +994,6 @@ Each bullet covers one theme, in this order:
 - Each bullet starts with a 2–4 word subheading that is specific and image-driven.
   - Good: "WATERTIGHT FOR FRESH BLOOMS: ", "TIMELESS CHINOISERIE AESTHETIC: "
   - Too vague: "FRESH FUNCTION: ", "TIMELESS STYLE: "
-- Every bullet must contain distinct, non-overlapping information.
 
 ## Style & Tone
 
