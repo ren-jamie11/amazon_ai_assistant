@@ -612,11 +612,13 @@ with image_description_col:
                 st.session_state['product_listings_from_urls'] = get_all_feature_bullets(st.session_state['rainforest_asin_json'])
                 st.session_state['asin_reviews_df'] = get_all_reviews(st.session_state['rainforest_asin_json'])
                 st.session_state['asin_reviews_str'] = concatenate_reviews(st.session_state['asin_reviews_df'])  
+                
+                combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
 
                 log_to_sheets(
                     function_name="rainforest_api_listing",
                     input_prompt=", ".join(product_urls),
-                    output=st.session_state["product_listings_from_urls"],
+                    output=combined_listing,
                 )  
 
                 log_to_sheets(
