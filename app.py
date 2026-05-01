@@ -558,7 +558,7 @@ with image_description_col:
 
     # Generate listing!
     st.write("")
-    st.toggle("Online mode", key = 'rainforest_mode')
+    st.toggle("Online mode", key = 'rainforest_mode', value=True)
     st.write("")
 
     if st.button("Extract info"):
