@@ -588,7 +588,7 @@ with image_description_col:
         
         else:
             # Option a) Get locally
-            if st.session_state.get('rainforest_mode', False):
+            if st.session_state['rainforest_mode'] == False:
                 # reset reviews
                 st.session_state['asin_reviews_str'] = ""
 
