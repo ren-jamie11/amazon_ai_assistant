@@ -2,7 +2,6 @@ import streamlit as st
 import time
 import base64
 
-from amazon_web_scrape import *
 from helpers_analytics import *
 from helpers_ai_prompting import *
 from user_login import *
@@ -555,9 +554,6 @@ with image_description_col:
 
     # Generate listing!
     st.write("")
-    st.toggle("Online mode", key = 'rainforest_mode')
-    st.write("")
-
     if st.button("Extract info"):
         
         # --- STEP 1: EXTRACT LISTING FROM URL ---
@@ -573,238 +569,137 @@ with image_description_col:
             if asin is not None
         ]
 
+        bullet_labels = st.session_state['bullet_labels']
+        
+        st.session_state['product_listings_from_urls'] = bullet_labels[bullet_labels['ASIN'].isin(product_asins)]['bullet_points'].tolist()
+
         # Check if product_listings is empty
         if not st.session_state.get('uploaded_images'):
             st.warning("请先上传产品图")
         elif not st.session_state['product_specs']:
             st.warning("请先输入关产品规格")
+
         elif not st.session_state['listing_bullet_keywords']:
             st.warning("请先输入关键词 keywords")
-        elif len(product_asins) == 0:
-            st.warning("No valid asins provided")
-        
+
+        elif not st.session_state['product_listings_from_urls']:
+            st.warning("请从竞品库选至少一个链接 url")
+
         else:
-            # Option a) Get locally
-            if st.session_state.get('rainforest_mode', False):
-                # reset reviews
-                st.session_state['asin_reviews_str'] = ""
+            combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
+            listing_prompt = feature_summary_from_url_prompt_simple.format(listing=combined_listing)
 
-                bullet_labels = st.session_state['bullet_labels']
-                st.session_state['product_listings_from_urls'] = bullet_labels[bullet_labels['ASIN'].isin(product_asins)]['bullet_points'].tolist()
+            with st.spinner("Analyzing listing..."):
+                st.session_state["listing_analysis"] = complete_phrase(
+                    client,
+                    listing_prompt,
+                    model='gpt-5.1-2025-11-13'
+                )
+                log_to_sheets(
+                    function_name="analyze_listing",
+                    input_prompt=", ".join(product_urls),
+                    output=st.session_state["listing_analysis"],
+                )
+
+            # --- STEP 2: WRITE LISTING
             
-            # Option b) Get via Rainforest API
-            else:
-                with st.spinner("Scraping URLs..."):
-                    # ---- Rainforest API call ----
-                    start_time=time.time()
-                    st.session_state['rainforest_asin_json'] = get_amazon_product_data_parallel(product_asins, RAINFOREST_API_KEY)
-                    end_time=time.time()
-                    elapsed_time = end_time-start_time
-                    st.write(f"Amazon request took {elapsed_time:.2f} seconds")
-
-                    if not st.session_state['rainforest_asin_json']:
-                        st.warning("No response from Rainforest API call...consider using local mode")
+            def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
+                if isinstance(listing_search_terms, str):
+                    listing_search_terms = listing_search_terms.split("\n")
                 
-                # ---- Extract info from json payload ----
-                st.session_state['product_listings_from_urls'] = get_all_feature_bullets(st.session_state['rainforest_asin_json'])
-                st.session_state['asin_reviews_df'] = get_all_reviews(st.session_state['rainforest_asin_json'])
-                st.session_state['asin_reviews_str'] = concatenate_reviews(st.session_state['asin_reviews_df'])  
-
-                log_to_sheets(
-                    function_name="rainforest_api_listing",
-                    input_prompt=", ".join(product_urls),
-                    output=st.session_state["product_listings_from_urls"],
-                )  
-
-                log_to_sheets(
-                    function_name="rainforest_api_reviews",
-                    input_prompt=", ".join(product_urls),
-                    output=st.session_state["asin_reviews_str"],
-                ) 
-
-            # ---- STEP 2: CHECK WHAT WE HAVE SO FAR (raw listings and reviews)
-            # --- SCENARIO 1: NO REVIEWS OR FEATURE BULLETS:
-            if not st.session_state['product_listings_from_urls'] and not st.session_state['asin_reviews_str']:
-                if not st.session_state.get('rainforest_mode', True):
-                    st.warning("请从竞品库选至少一个链接 url")
-                else:
-                    st.warning("Sorry...please use local products for now.")
-
-            else:
-                # --- SCENARIO 2: NO REVIEWS -------
-                if not st.session_state['asin_reviews_str']:
-                    if not st.session_state.get('rainforest_mode', True):
-                        st.warning("Could not extract reviews from JSON")
-                    # --- STEP 1: ANALYZE FEATURE BULLETS ONLY -----
-                    with st.spinner("Analyzing feature bullets..."):
-                        combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
-                        listing_summary_prompt = listing_features_prompt_template.format(product_listings=combined_listing)
-                        
-                        st.session_state["product_info_synthesis"] = complete_phrase(
-                            client,
-                            listing_summary_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-
-                        log_to_sheets(
-                            function_name="analyze_listing",
-                            input_prompt=", ".join(product_urls),
-                            output=st.session_state["product_info_synthesis"],
-                        )
-
-                # --- SCENARIO 3: HAS REVIEWS -------------
-                else:
-                    # --- STEP 1: ANALYZE FEATURE BULLETS  -----
-                    if not st.session_state['product_listings_from_urls']:
-                        st.warning("Could not extract feature bullets from JSON...")
-                        st.session_state["listing_analysis"] = ""
-                    else:
-                        with st.spinner("Analyzing feature bullets..."):
-                            combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
-                            listing_summary_prompt = listing_features_prompt_template.format(product_listings=combined_listing)
-
-                            st.session_state["listing_analysis"] = complete_phrase(
-                                client,
-                                listing_summary_prompt,
-                                model='gpt-5.4-2026-03-05'
-                            )
-
-                            log_to_sheets(
-                                function_name="analyze_listing",
-                                input_prompt=", ".join(product_urls),
-                                output=st.session_state["listing_analysis"],
-                            )
-                    
-                    # --- STEP 2: ANALYZE REVIEWS  -----
-                    with st.spinner("Analyzing reviews..."):
-                        reviews_summary_prompt = reviews_summary_prompt_redacted_template.format(product_reviews=st.session_state['asin_reviews_str'])
-                        reviews_usage_keywords_prompt = reviews_usage_keywords_prompt_template.format(product_reviews=st.session_state['asin_reviews_str'])
-                        
-                        st.session_state["product_reviews_summary"] = complete_phrase(
-                            client,
-                            reviews_summary_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-
-                        st.session_state["usage_keywords_from_reviews"] = complete_phrase(
-                            client,
-                            reviews_usage_keywords_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-
-                        st.session_state["combined_reviews_output"] = (
-                            st.session_state["product_reviews_summary"]
-                            + "\n\n"
-                            + st.session_state["usage_keywords_from_reviews"]
-                        )
-
-                        log_to_sheets(
-                                function_name="analyze_reviews",
-                                input_prompt=", ".join(product_urls),
-                                output=st.session_state["combined_reviews_output"],
-                            )
-                    
-                    # --- STEP 3: SYNTHESIZE INFO ----- 
-                    with st.spinner("Synthesizing info..."):
-                        listing_synthesizer_prompt = listing_synthesizer_prompt_template.format(listing_summary = st.session_state["listing_analysis"],
-                                                                                        reviews_summary = st.session_state["combined_reviews_output"])
-
-                        st.session_state["product_info_synthesis"] = complete_phrase(
-                            client,
-                            listing_synthesizer_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-            
-                # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]-----
-                def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
-                    if isinstance(listing_search_terms, str):
-                        listing_search_terms = listing_search_terms.split("\n")
-                    
-                    # Sort and get top N
-                    listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
-                    top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
-                    
-                    # Prepare prompt
-                    fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
-                    
-                    # Try Gemini, fall back to GPT on any failure
-                    try:
-                        fix_keyword_response = gemini_client.models.generate_content(
-                            model="gemini-2.5-flash-lite", # Note: double check your model string too!
-                            contents=fix_keyword_prompt,
-                            # Config handles model behavior (JSON, schema, etc.)
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                                response_schema={
-                                    "type": "ARRAY",
-                                    "items": {"type": "STRING"}
-                                },
-                            ),
-                        )
-                        res = json.loads(fix_keyword_response.text)
-                    except Exception as e:
-                        gpt_response = complete_phrase(client, fix_keyword_prompt, model='gpt-5.1')
-                        res = [kw.strip() for kw in gpt_response.split(",") if kw.strip()]
-                    
-                    res = capitalize_first(res)
-                    return res
-
-                with st.spinner("Writing listing..."):
-                    st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
-                    
-                    generate_listing_prompt = amazon_listing_prompt_template_revised.format(
-                        product_specs = st.session_state['product_specs'],
-                        keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
-                        product_features =  st.session_state["product_info_synthesis"]
+                # Sort and get top N
+                listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
+                top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
+                
+                # Prepare prompt
+                fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
+                
+                # Try Gemini, fall back to GPT on any failure
+                try:
+                    fix_keyword_response = gemini_client.models.generate_content(
+                        model="gemini-2.5-flash-lite", # Note: double check your model string too!
+                        contents=fix_keyword_prompt,
+                        # Config handles model behavior (JSON, schema, etc.)
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema={
+                                "type": "ARRAY",
+                                "items": {"type": "STRING"}
+                            },
+                        ),
                     )
+                    res = json.loads(fix_keyword_response.text)
+                except Exception as e:
+                    gpt_response = complete_phrase(client, fix_keyword_prompt, model='gpt-5.1')
+                    res = [kw.strip() for kw in gpt_response.split(",") if kw.strip()]
+                
+                res = capitalize_first(res)
+                return res
 
-                    st.write(generate_listing_prompt)
+            with st.spinner("Writing listing..."):
+                st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
+                
+    
+                # # Avoid weird bug where if 4 keywords...last subheading bugs out
+                # if len(st.session_state["grammar_correct_search_terms"]) == 4:
+                #     st.session_state["grammar_correct_search_terms"] = fix_4_element_list_bug(st.session_state["grammar_correct_search_terms"])
+                
+                generate_listing_prompt = listing_writer_instructions_gemini.format(
+                    selected_product = selected_product,
+                    product_specs = st.session_state['product_specs'],
+                    keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
+                    secondary_keywords = st.session_state['secondary_keywords'],
+                    desirable_features =  st.session_state["listing_analysis"]
+                )
 
-                    start=time.time()
-                    st.session_state["ai_listing_draft"] = complete_phrase(
-                                        client,
-                                        generate_listing_prompt,
-                                        model='gpt-5.4-2026-03-05',
-                                        images=st.session_state.get('uploaded_images') or None
-                                    )
-                                    
-                    log_to_sheets(
-                                        function_name="write_listing_draft",
-                                        input_prompt=(
-                                            "specs:\n" + st.session_state.get('product_specs', '') +
-                                            "\nlisting analysis:\n" + st.session_state.get('product_info_synthesis', '') +
-                                            "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
-                                        ),
-                                        output=st.session_state["ai_listing_draft"],
-                                        images_used=len(st.session_state.get('uploaded_images') or []),
-                                    )
-                    
-                    end = time.time()
-                    elapsed = end-start
-                    st.write(f"Request took {elapsed:.2f} seconds")
+                start=time.time()
+                
+                # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
+                #         model="gemini-3-flash-preview",
+                #         contents=generate_listing_prompt,
+                #         config=types.GenerateContentConfig(
+                #         thinking_config=types.ThinkingConfig(
+                #             thinking_level="MEDIUM" 
+                #         ),
+                #         temperature=0.2,
+                #                 )).text
 
+                # st.write(generate_listing_prompt)
+                
+                
+                # st.write(generate_listing_prompt)
+                # old model gpt-5.1-2025-11-13'
+                st.session_state["ai_listing_draft"] = complete_phrase(
+                                    client,
+                                    generate_listing_prompt,
+                                    model='gpt-5.4-2026-03-05',
+                                    images=st.session_state.get('uploaded_images') or None
+                                )
+                                
+                log_to_sheets(
+                                    function_name="write_listing_draft",
+                                    input_prompt=(
+                                        "specs:\n" + st.session_state.get('product_specs', '') +
+                                        "\nlisting analysis:\n" + st.session_state.get('listing_analysis', '') +
+                                        "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
+                                    ),
+                                    output=st.session_state["ai_listing_draft"],
+                                    images_used=len(st.session_state.get('uploaded_images') or []),
+                                )
+                
+                end = time.time()
+                elapsed = end-start
+                st.write(f"Request took {elapsed:.2f} seconds")
+
+    # if st.session_state["grammar_correct_search_terms"]:
+    #     st.write("#### Keywords")
+    #     st.write(st.session_state["grammar_correct_search_terms"])
+        
     st.write("")
-    tab1, tab2, tab3 = st.tabs([
-        "Bullets Summary",
-        "Reviews Summary",
-        "Synthesized Info"
-    ])
-
-    with tab1:
-        if st.session_state["listing_analysis"]:
-            num_reference_listings = len(st.session_state['product_listings_from_urls'])
-            st.write(f"##### Info from URLs ({num_reference_listings})")
-            st.write(st.session_state["listing_analysis"])
-
-    with tab2:
-        if st.session_state["combined_reviews_output"]:
-            st.write("##### Reviews summary")
-            st.write(st.session_state["combined_reviews_output"])
-
-    with tab3:
-        if st.session_state["product_info_synthesis"]:
-            st.write(f"##### Synthesized info ({len(st.session_state['product_listings_from_urls'])})")
-            st.write(st.session_state["product_info_synthesis"])
+    if st.session_state["listing_analysis"]:
+        num_reference_listings = len(st.session_state['product_listings_from_urls'])
+        st.write(f"##### Info from URLs ({num_reference_listings})")
+        st.write(st.session_state["listing_analysis"])
 
     # Display results!
     def keyword_markdown(title, keyword_set):
@@ -1129,19 +1024,3 @@ with ai_tools_col:
     if st.session_state["product_description_result"]:
         st.write("#### Product Description")
         st.write(st.session_state["product_description_result"])
-
-
-
-
-
- # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
-#         model="gemini-3-flash-preview",
-#         contents=generate_listing_prompt,
-#         config=types.GenerateContentConfig(
-#         thinking_config=types.ThinkingConfig(
-#             thinking_level="MEDIUM" 
-#         ),
-#         temperature=0.2,
-#                 )).text
-
-# st.write(generate_listing_prompt)
