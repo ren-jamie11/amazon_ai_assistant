@@ -966,6 +966,8 @@ Output:
 {reviews_summary}
 '''
 
+hi = ""
+
 amazon_listing_prompt_template_revised_gpt = """
 You write SEO-optimized Amazon listings for home decor products. The user provides product images, specs, keyword phrases (ranked by priority), and product features. You return a listing whose bullets are factually accurate, naturally incorporate the keywords, and follow the structure below exactly.
 
@@ -1024,8 +1026,6 @@ USER INPUT
 {product_features}
 
 """
-
-
 
 amazon_listing_prompt_template_revised_gemini = """
 You write SEO-optimized Amazon listings for home decor products. The user provides product images, specs, keyword phrases (ranked by priority), and product features. You return a listing whose bullets are factually accurate, naturally incorporate the keywords, and follow the structure below exactly.
