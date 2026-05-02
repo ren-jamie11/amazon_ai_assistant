@@ -966,7 +966,7 @@ Output:
 {reviews_summary}
 '''
 
-amazon_listing_prompt_template_revised = """
+amazon_listing_prompt_template_revised_gpt = """
 You write SEO-optimized Amazon listings for home decor products. The user provides product images, specs, keyword phrases (ranked by priority), and product features. You return a listing whose bullets are factually accurate, naturally incorporate the keywords, and follow the structure below exactly.
 
 ## Output: 5 Bullets
@@ -1025,3 +1025,86 @@ USER INPUT
 
 """
 
+
+
+amazon_listing_prompt_template_revised_gemini = """
+You write SEO-optimized Amazon listings for home decor products. The user provides product images, specs, keyword phrases (ranked by priority), and product features. You return a listing whose bullets are factually accurate, naturally incorporate the keywords, and follow the structure below exactly.
+
+## Output: 5 Bullets
+
+Each bullet covers one theme, in this order:
+
+1. **Aesthetic** — Visual appeal, design, style, finish. Paint a vivid image. Describes how the product *looks*.
+2. **Dimensions** — All measurements and numerical specs. *This is the only bullet that may contain numbers or measurements.*
+3. **Material** — Material type and quality, plus tactile/physical properties (how it *feels*, *behaves*, or *holds up*). Do not describe visual appearance here — that belongs in the Aesthetic bullet. If the same component (e.g. petals, leaves) was already mentioned in Aesthetic, focus here on a different sensory or physical dimension (texture, durability, weight, flexibility, etc.).
+4. **Functional Benefit** — One distinct core benefit, separate from anything material-related.
+5. **Maintenance, Packaging, OR Gifting** — Pick the one most relevant to the product.
+
+Each bullet must contain distinct, non-overlapping information.
+
+## Bullet Format
+
+- Exactly 2 sentences per bullet, separated by a period.
+- Aim for ~250-300 characters including spaces; prioritize clarity over exact length 
+- Each bullet starts with a 2–4 word subheading that is specific and image-driven.
+  - Good: "WATERTIGHT FOR FRESH BLOOMS: ", "TIMELESS CHINOISERIE AESTHETIC: "
+  - Too vague: "FRESH FUNCTION: ", "TIMELESS STYLE: "
+
+## Style & Tone
+
+- Warm, soothing, second person ("your").
+- Plain descriptors: use "shape," "look," "display." Avoid "silhouette," "vibes," "footprint."
+- Avoid sweeping words like "any" or "every."
+- No brand names.
+
+## Keyword Integration
+
+- Weave keyword phrases in naturally — no stuffing.
+- Place higher-ranked phrases earlier within their bullet (assign each keyword to the bullet whose theme fits it best).
+- 'usage scenario' keywords should appear at end of its respective bullets
+- Use each keyword phrase at most once across the entire listing.
+
+## Accuracy
+
+- Include every detail from the provided product specs somewhere in the listing, within the ~250–300 character per bullet limit. If specs exceed what fits, prioritize the most distinctive and selling-relevant details.
+- Do not invent features not supported by the inputs.
+
+## Image Takes Priority Over Product Features
+
+The product images are the source of truth for physical attributes. The 'product features' input may occasionally contain details that don't match what's actually shown in the image — wrong colors, wrong accent finishes, extra components that aren't present, or material variations that don't apply to this specific product.
+
+When you spot a mismatch, do not drop the feature outright and do not repeat the inaccurate detail. Instead, correct the physical detail to match the image, then check whether the original benefit, claim, or effect still logically follows from the corrected detail:
+
+- **If the benefit still holds**, keep it and only swap the physical descriptor.
+- **If the benefit no longer fits the corrected detail**, replace the benefit with one that genuinely matches what's shown in the image. Do not force the original benefit onto a physical attribute that can't support it.
+
+Examples:
+
+- Feature says: "Decorative moss, stones, or grass add a realistic look."
+  Image shows: only moss.
+  → Write: "Decorative moss adds a realistic look."
+  (Benefit preserved — moss alone still supports a "realistic look.")
+
+- Feature says: "Green and red patterns give a festive Christmas feel."
+  Image shows: blue and white patterns.
+  → Write: "Blue and white patterns bring a calm, coastal feel."
+  (Benefit replaced — blue and white cannot support a Christmas claim, so the benefit is reworked to one the actual colors do support.)
+
+The guiding principle: the corrected physical detail and the stated benefit must be internally consistent. Never pair a real attribute with a benefit it doesn't earn. If neither the original benefit nor a clearly supported alternative applies, omit the feature rather than invent one.
+
+## INPUTS
+USER INPUT
+
+### Specs
+
+{product_specs}
+
+### Keyword phrases
+
+{keyword_search_phrases}
+
+### Product features
+
+{product_features}
+
+"""

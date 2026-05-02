@@ -188,7 +188,7 @@ _STATE_KEYS_TO_DELETE = [
     "product_components_result",
     "rewriting_result",
     "listing_analysis",
-    "grammar_correct_search_terms",
+    "formatted_search_terms",
     "product_listings_from_urls",
     "fixed_keywords",
     "filtered",
@@ -385,7 +385,7 @@ st.session_state.setdefault("pre_optimized_listing", False)
 st.session_state.setdefault("finished_product_title", "")
 st.session_state.setdefault("fixed_keywords", "")
 st.session_state.setdefault("cleaned_keywords", "")
-st.session_state.setdefault("grammar_correct_search_terms", "")
+st.session_state.setdefault("formatted_search_terms", "")
 st.session_state.setdefault("product_listings_from_urls", [])
 st.session_state.setdefault("product_specs", "")
 st.session_state.setdefault("product_reviews_summary", "")
@@ -720,50 +720,16 @@ with image_description_col:
                             model='gpt-5.4-2026-03-05'
                         )
             
-                # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]-----
-                def process_keyword_phrase_from_text_box(listing_search_terms, keyword_phrases, n=5):
-                    if isinstance(listing_search_terms, str):
-                        listing_search_terms = listing_search_terms.split("\n")
-                    
-                    # Sort and get top N
-                    listing_search_terms = sort_search_terms(listing_search_terms, keyword_phrases)
-                    top_listing_search_terms = get_top_n_search_terms(listing_search_terms, n=n)
-                    
-                    # Prepare prompt
-                    fix_keyword_prompt = keyword_grammar_fix_prompt.format(keyword_phrases=top_listing_search_terms)
-                    
-                    # Try Gemini, fall back to GPT on any failure
-                    try:
-                        fix_keyword_response = gemini_client.models.generate_content(
-                            model="gemini-2.5-flash-lite", # Note: double check your model string too!
-                            contents=fix_keyword_prompt,
-                            # Config handles model behavior (JSON, schema, etc.)
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                                response_schema={
-                                    "type": "ARRAY",
-                                    "items": {"type": "STRING"}
-                                },
-                            ),
-                        )
-                        res = json.loads(fix_keyword_response.text)
-                    except Exception as e:
-                        gpt_response = complete_phrase(client, fix_keyword_prompt, model='gpt-5.1')
-                        res = [kw.strip() for kw in gpt_response.split(",") if kw.strip()]
-                    
-                    res = capitalize_first(res)
-                    return res
-
+                # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]---
                 with st.spinner("Writing listing..."):
-                    st.session_state["grammar_correct_search_terms"] = process_keyword_phrase_from_text_box(st.session_state["listing_bullet_keywords"], keyword_phrases)
-                    
-                    generate_listing_prompt = amazon_listing_prompt_template_revised.format(
+                    st.session_state['formatted_search_terms'] = "\n".join(f"- {line}" for line in st.session_state["listing_bullet_keywords"].splitlines() if line.strip())
+
+                    # Threat 1: GPT
+                    generate_listing_prompt = amazon_listing_prompt_template_revised_gpt.format(
                         product_specs = st.session_state['product_specs'],
-                        keyword_search_phrases = st.session_state["grammar_correct_search_terms"],
+                        keyword_search_phrases = st.session_state['formatted_search_terms'],
                         product_features =  st.session_state["product_info_synthesis"]
                     )
-
-                    st.write(generate_listing_prompt)
 
                     start=time.time()
                     st.session_state["ai_listing_draft"] = complete_phrase(
@@ -773,6 +739,8 @@ with image_description_col:
                                         images=st.session_state.get('uploaded_images') or None
                                     )
                     
+                    # Thread 2: Gemini
+
                     # images = st.session_state.get('uploaded_images') or []
                     # gemini_listing_contents = [generate_listing_prompt] + images
                     # st.write(f"Used {len(images)} images")
@@ -801,6 +769,11 @@ with image_description_col:
                     end = time.time()
                     elapsed = end-start
                     st.write(f"Request took {elapsed:.2f} seconds")
+
+
+    if st.session_state["formatted_search_terms"]:
+        st.write("#### Keywords")
+        st.write(st.session_state["formatted_search_terms"])
 
     st.write("")
     tab1, tab2, tab3 = st.tabs([
@@ -1044,7 +1017,7 @@ with ai_tools_col:
         desc_col, download_col = st.columns([5, 1])
         with desc_col:
             if st.button("Generate product description", key="generate_product_description_from_listing"):
-                primary_kw = ", ".join(st.session_state["grammar_correct_search_terms"]) if isinstance(st.session_state["grammar_correct_search_terms"], list) else st.session_state["grammar_correct_search_terms"]
+                primary_kw = ", ".join(st.session_state["formatted_search_terms"]) if isinstance(st.session_state["formatted_search_terms"], list) else st.session_state["formatted_search_terms"]
                 secondary_kw = st.session_state.get("secondary_keywords", "")
                 combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
 
