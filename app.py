@@ -630,7 +630,7 @@ with image_description_col:
             # ---- STEP 2: CHECK WHAT WE HAVE SO FAR (raw listings and reviews)
             # --- SCENARIO 1: NO REVIEWS OR FEATURE BULLETS:
             if not st.session_state['product_listings_from_urls'] and not st.session_state['asin_reviews_str']:
-                if not st.session_state.get('rainforest_mode', True):
+                if st.session_state['rainforest_mode'] == True:
                     st.warning("请从竞品库选至少一个链接 url")
                 else:
                     st.warning("Sorry...please use local products for now.")
@@ -772,6 +772,20 @@ with image_description_col:
                                         model='gpt-5.4-2026-03-05',
                                         images=st.session_state.get('uploaded_images') or None
                                     )
+                    
+                    # images = st.session_state.get('uploaded_images') or []
+                    # gemini_listing_contents = [generate_listing_prompt] + images
+                    # st.write(f"Used {len(images)} images")
+
+                    # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
+                    #     model="gemini-3-flash-preview",
+                    #     contents=gemini_listing_contents,
+                    #     config=types.GenerateContentConfig(
+                    #         thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+                    #         temperature=1.0,
+                    #         http_options=types.HttpOptions(timeout=300_000),  # 300 seconds, in milliseconds
+                    #     )
+                    # ).text
                                     
                     log_to_sheets(
                                         function_name="write_listing_draft",

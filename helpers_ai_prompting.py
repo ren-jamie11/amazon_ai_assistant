@@ -745,7 +745,6 @@ Group phrases under these headings, in this order:
    - **Spaces**: rooms or environments (bedroom, living room, office, patio)
    - **Placement settings**: surfaces or locations within a space (shelf, desk, mantel, nightstand)
    - **Gift occasions**: events the product is gifted for (Christmas, weddings, birthdays, housewarming)
-   - **Recipients**: who it's intended for (mom, dad, husband, teacher, kids)
    - **Compatible items**: what the product is designed to hold, display, or work with (picture frame → wedding photos, pet pictures, art prints; mug → coffee, tea, latte; vase → fresh flowers, pampas grass, dried plants)
    
    Exclude vague catch-all keywords ("home decor", "decoration", "any space"); keep only specific, concrete terms.
@@ -754,7 +753,6 @@ Group phrases under these headings, in this order:
    Format examples:
    - "Fits in: bedroom, living room, home office"
    - "Great gift for: Christmas, weddings, housewarming"
-   - "Ideal for: mom, grandmother, best friend"
    - "Suitable for displaying: fresh flowers, pampas grass, dried plants"
       
 Within each category, order phrases from most to least frequently emphasized across the listings provided.
@@ -842,7 +840,6 @@ From the reviews below, extract **use scenario keywords** across up to five sub-
 - **Spaces** — rooms or environments the product was placed in (bedroom, living room, office, patio, bathroom, entryway)
 - **Placement settings** — surfaces or locations within a space (shelf, desk, mantel, nightstand, countertop, windowsill)
 - **Gift occasions** — events the product was gifted for (Christmas, weddings, birthdays, housewarming, Mother's Day, anniversaries)
-- **Recipients** — who customers gave or bought it for (mom, dad, husband, wife, teacher, kids, friend)
 - **Applications** — what the product was used for: items it held or displayed, or the purpose it served
   - picture frame → wedding photos, pet pictures, art prints
   - mug → coffee, tea, latte, hot chocolate
@@ -872,7 +869,6 @@ Output only the section below. No preamble, no commentary, no explanation. If a 
 **USE SCENARIOS**:
 - Used in: <spaces keywords, comma-separated>
 - Placed on: <placement keywords, comma-separated>
-- Gifted for: <occasion keywords, comma-separated>
 - Bought for: <recipient keywords, comma-separated>
 - Used for: <application keywords, comma-separated>
 
@@ -880,8 +876,7 @@ Output only the section below. No preamble, no commentary, no explanation. If a 
 **USE SCENARIOS**:
 - Used in: living room, bedroom, entryway, office
 - Placed on: shelf, mantel, desk, nightstand
-- Gifted for: weddings, Mother's Day, housewarming, Christmas
-- Bought for: moms, wives, grandparents, friends
+- Bought for: weddings, Mother's Day, housewarming, Christmas
 - Used for: family photos, wedding portraits, pet pictures, baby photos
 
 ## Input reviews:
@@ -930,7 +925,6 @@ Group phrases under these headings, in this order. Omit any section that has no 
    - **Spaces**: rooms or environments (bedroom, living room, office, patio)
    - **Placement settings**: surfaces or locations within a space (shelf, desk, mantel, nightstand)
    - **Gift occasions**: events the product is gifted for (Christmas, weddings, birthdays)
-   - **Recipients**: who it's intended for (mom, dad, husband, teacher)
    - **Used for + <verb>**: what the product is designed to hold, display, or work with (picture frame → wedding photos, pet pictures, art prints; mug → coffee, tea, latte; vase → fresh flowers, pampas grass, dried plants). Pick suitable verb that matches relationship between the product and keywords (e.g photo frame or vase -> displaying).
 
 
