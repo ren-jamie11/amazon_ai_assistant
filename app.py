@@ -181,7 +181,8 @@ _WIDGET_KEYS_TO_CLEAR = [
 # Non-widget session state keys — safe to delete outright
 _STATE_KEYS_TO_DELETE = [
     "title_result",
-    "ai_listing_draft",
+    "ai_listing_draft_gpt",
+    "ai_listing_draft_gemini",
     "photo_result",
     "suggestion_result",
     "synonym_result",
@@ -394,7 +395,8 @@ st.session_state.setdefault("combined_reviews_output", "")
 
 st.session_state.setdefault("listing_analysis", "")
 st.session_state.setdefault("product_info_synthesis", "")
-st.session_state.setdefault("ai_listing_draft", "")
+st.session_state.setdefault("ai_listing_draft_gpt", "")
+st.session_state.setdefault("ai_listing_draft_gemini", "")
 st.session_state.setdefault("product_description_result", "")
 
 st.session_state.setdefault("rainforest_asin_json", {})
@@ -722,52 +724,96 @@ with image_description_col:
             
                 # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]---
                 with st.spinner("Writing listing..."):
-                    st.session_state['formatted_search_terms'] = "\n".join(f"- {line}" for line in st.session_state["listing_bullet_keywords"].splitlines() if line.strip())
-
-                    # Threat 1: GPT
-                    generate_listing_prompt = amazon_listing_prompt_template_revised_gpt.format(
-                        product_specs = st.session_state['product_specs'],
-                        keyword_search_phrases = st.session_state['formatted_search_terms'],
-                        product_features =  st.session_state["product_info_synthesis"]
+                    st.session_state['formatted_search_terms'] = "\n".join(
+                        f"- {line}" for line in st.session_state["listing_bullet_keywords"].splitlines() if line.strip()
                     )
 
-                    start=time.time()
-                    st.session_state["ai_listing_draft"] = complete_phrase(
-                                        client,
-                                        generate_listing_prompt,
-                                        model='gpt-5.4-2026-03-05',
-                                        images=st.session_state.get('uploaded_images') or None
-                                    )
-                    
-                    # Thread 2: Gemini
+                    generate_listing_prompt_gpt = amazon_listing_prompt_template_revised_gpt.format(
+                        product_specs=st.session_state['product_specs'],
+                        keyword_search_phrases=st.session_state['formatted_search_terms'],
+                        product_features=st.session_state["product_info_synthesis"]
+                    )
 
-                    # images = st.session_state.get('uploaded_images') or []
-                    # gemini_listing_contents = [generate_listing_prompt] + images
-                    # st.write(f"Used {len(images)} images")
+                    generate_listing_prompt_gemini = amazon_listing_prompt_template_revised_gemini.format(
+                        product_specs=st.session_state['product_specs'],
+                        keyword_search_phrases=st.session_state['formatted_search_terms'],
+                        product_features=st.session_state["product_info_synthesis"]
+                    )
 
-                    # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
-                    #     model="gemini-3-flash-preview",
-                    #     contents=gemini_listing_contents,
-                    #     config=types.GenerateContentConfig(
-                    #         thinking_config=types.ThinkingConfig(thinking_level="LOW"),
-                    #         temperature=1.0,
-                    #         http_options=types.HttpOptions(timeout=300_000),  # 300 seconds, in milliseconds
-                    #     )
-                    # ).text
-                                    
-                    log_to_sheets(
-                                        function_name="write_listing_draft",
-                                        input_prompt=(
-                                            "specs:\n" + st.session_state.get('product_specs', '') +
-                                            "\nlisting analysis:\n" + st.session_state.get('product_info_synthesis', '') +
-                                            "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
-                                        ),
-                                        output=st.session_state["ai_listing_draft"],
-                                        images_used=len(st.session_state.get('uploaded_images') or []),
-                                    )
-                    
-                    end = time.time()
-                    elapsed = end-start
+                    images = st.session_state.get('uploaded_images') or []
+
+                    log_input = (
+                        "specs:\n" + st.session_state.get('product_specs', '') +
+                        "\nlisting analysis:\n" + st.session_state.get('product_info_synthesis', '') +
+                        "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
+                    )
+
+                    def run_gpt():
+                        return complete_phrase(
+                            client,
+                            generate_listing_prompt_gpt,
+                            model='gpt-5.4-2026-03-05',
+                            images=images or None
+                        )
+
+                    def run_gemini():
+                        gemini_listing_contents = [generate_listing_prompt_gemini] + images
+                        return gemini_client.models.generate_content(
+                            model="gemini-3-flash-preview",
+                            contents=gemini_listing_contents,
+                            config=types.GenerateContentConfig(
+                                thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+                                temperature=1.0,
+                                http_options=types.HttpOptions(timeout=300_000),
+                            )
+                        ).text
+
+                    start = time.time()
+
+                    with ThreadPoolExecutor(max_workers=2) as executor:
+                        future_gpt = executor.submit(run_gpt)
+                        future_gemini = executor.submit(run_gemini)
+
+                        # GPT result
+                        try:
+                            st.session_state["ai_listing_draft_gpt"] = future_gpt.result()
+                            log_to_sheets(
+                                function_name="write_listing_draft_gpt",
+                                input_prompt=log_input,
+                                output=st.session_state["ai_listing_draft_gpt"],
+                                images_used=len(images),
+                            )
+                        except Exception as e:
+                            st.session_state["ai_listing_draft_gpt"] = ""
+                            st.warning(f"GPT listing generation failed: {e}")
+                            log_to_sheets(
+                                function_name="write_listing_draft_gpt",
+                                input_prompt=log_input,
+                                output=f"ERROR: {e}",
+                                images_used=len(images),
+                            )
+
+                        # Gemini result
+                        try:
+                            st.session_state["ai_listing_draft_gemini"] = future_gemini.result()
+                            log_to_sheets(
+                                function_name="write_listing_draft_gemini",
+                                input_prompt=log_input,
+                                output=st.session_state["ai_listing_draft_gemini"],
+                                images_used=len(images),
+                            )
+                        except Exception as e:
+                            st.session_state["ai_listing_draft_gemini"] = ""
+                            st.warning(f"Gemini listing generation failed: {e}")
+                            log_to_sheets(
+                                function_name="write_listing_draft_gemini",
+                                input_prompt=log_input,
+                                output=f"ERROR: {e}",
+                                images_used=len(images),
+                            )
+
+                    elapsed = time.time() - start
+                    st.write(f"Used {len(images)} images")
                     st.write(f"Request took {elapsed:.2f} seconds")
 
 
@@ -1008,132 +1054,131 @@ with ai_tools_col:
         st.write("")
         st.markdown(f"##### {st.session_state["title_result"]}")
 
+    if st.session_state["ai_listing_draft_gpt"]:
+        st.write("#### GPT")
+        st.write(st.session_state["ai_listing_draft_gpt"])
+
     st.write("")
-    if st.session_state["ai_listing_draft"]:
-        # st.write("##### Listing draft")
-        st.write(st.session_state["ai_listing_draft"])
+    if st.session_state["ai_listing_draft_gemini"]:
+        st.write("#### Gemini")
+        st.write(st.session_state["ai_listing_draft_gemini"])
 
-        st.write("")
-        desc_col, download_col = st.columns([5, 1])
-        with desc_col:
-            if st.button("Generate product description", key="generate_product_description_from_listing"):
-                primary_kw = ", ".join(st.session_state["formatted_search_terms"]) if isinstance(st.session_state["formatted_search_terms"], list) else st.session_state["formatted_search_terms"]
-                secondary_kw = st.session_state.get("secondary_keywords", "")
-                combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
 
-                description_prompt = product_description_instructions.format(
-                    product_specs=st.session_state["product_specs"],
-                    keywords=combined_keywords,
-                    desirable_features=st.session_state["listing_analysis"],
-                    bullet_point_listing=st.session_state["ai_listing_draft"],
-                )
+    # st.write("")
+    # if st.session_state["ai_listing_draft"]:
+    #     # st.write("##### Listing draft")
+    #     st.write(st.session_state["ai_listing_draft"])
 
-                with st.spinner("Generating product description..."):
-                    st.session_state["product_description_result"] = complete_phrase(
-                        client,
-                        description_prompt,
-                        model='gpt-5.1-2025-11-13'
-                    )
-                    log_to_sheets(
-                        function_name="generate_product_description",
-                        input_prompt=(
-                            "specs:\n" + st.session_state.get("product_specs", "") +
-                            "\nkeywords:\n" + combined_keywords +
-                            "\nlisting draft:\n" + st.session_state.get("ai_listing_draft", "")
-                        ),
-                        output=st.session_state["product_description_result"],
-                    )
+    #     st.write("")
+    #     desc_col, download_col = st.columns([5, 1])
+    #     with desc_col:
+    #         if st.button("Generate product description", key="generate_product_description_from_listing"):
+    #             primary_kw = ", ".join(st.session_state["formatted_search_terms"]) if isinstance(st.session_state["formatted_search_terms"], list) else st.session_state["formatted_search_terms"]
+    #             secondary_kw = st.session_state.get("secondary_keywords", "")
+    #             combined_keywords = f"{primary_kw}\n{secondary_kw}".strip()
 
-        with download_col:
-            def generate_docx():
-                doc = Document()
+    #             description_prompt = product_description_instructions.format(
+    #                 product_specs=st.session_state["product_specs"],
+    #                 keywords=combined_keywords,
+    #                 desirable_features=st.session_state["listing_analysis"],
+    #                 bullet_point_listing=st.session_state["ai_listing_draft"],
+    #             )
+
+    #             with st.spinner("Generating product description..."):
+    #                 st.session_state["product_description_result"] = complete_phrase(
+    #                     client,
+    #                     description_prompt,
+    #                     model='gpt-5.1-2025-11-13'
+    #                 )
+    #                 log_to_sheets(
+    #                     function_name="generate_product_description",
+    #                     input_prompt=(
+    #                         "specs:\n" + st.session_state.get("product_specs", "") +
+    #                         "\nkeywords:\n" + combined_keywords +
+    #                         "\nlisting draft:\n" + st.session_state.get("ai_listing_draft", "")
+    #                     ),
+    #                     output=st.session_state["product_description_result"],
+    #                 )
+
+    #     with download_col:
+    #         def generate_docx():
+    #             doc = Document()
                 
-                # 1. Add Title if available
-                title_text = st.session_state.get("title_result", "")
-                if title_text:
-                    title_text = title_text.replace("**", "")
-                    heading = doc.add_heading(level=1)
-                    run = heading.add_run(title_text)
-                    run.font.color.rgb = RGBColor(0, 0, 0)
-                    doc.add_paragraph("")
+    #             # 1. Add Title if available
+    #             title_text = st.session_state.get("title_result", "")
+    #             if title_text:
+    #                 title_text = title_text.replace("**", "")
+    #                 heading = doc.add_heading(level=1)
+    #                 run = heading.add_run(title_text)
+    #                 run.font.color.rgb = RGBColor(0, 0, 0)
+    #                 doc.add_paragraph("")
 
-                # 2. Process the Listing Content
-                content = st.session_state["ai_listing_draft"]
-                for line in content.split('\n'):
-                    line = line.strip()
-                    if not line:
-                        continue
+    #             # 2. Process the Listing Content
+    #             content = st.session_state["ai_listing_draft"]
+    #             for line in content.split('\n'):
+    #                 line = line.strip()
+    #                 if not line:
+    #                     continue
                     
-                    clean_line = line.replace("**", "")
+    #                 clean_line = line.replace("**", "")
                     
-                    if line.startswith(('-', '*')):
-                        clean_line = clean_line.lstrip('-* ').strip()
-                        p = doc.add_paragraph(style='List Bullet')
-                    else:
-                        p = doc.add_paragraph()
+    #                 if line.startswith(('-', '*')):
+    #                     clean_line = clean_line.lstrip('-* ').strip()
+    #                     p = doc.add_paragraph(style='List Bullet')
+    #                 else:
+    #                     p = doc.add_paragraph()
 
-                    if ":" in clean_line:
-                        subheading, description = clean_line.split(":", 1)
-                        bold_run = p.add_run(subheading + ":")
-                        bold_run.bold = True
-                        p.add_run(description)
-                    else:
-                        p.add_run(clean_line)
+    #                 if ":" in clean_line:
+    #                     subheading, description = clean_line.split(":", 1)
+    #                     bold_run = p.add_run(subheading + ":")
+    #                     bold_run.bold = True
+    #                     p.add_run(description)
+    #                 else:
+    #                     p.add_run(clean_line)
 
-                # 3. Add Product Description on a new page if available
-                product_desc = st.session_state.get("product_description_result", "")
-                if product_desc:
-                    from docx.oxml.ns import qn
-                    from docx.oxml import OxmlElement
-                    # Insert page break
-                    page_break_p = doc.add_paragraph()
-                    run = page_break_p.add_run()
-                    br = OxmlElement('w:br')
-                    br.set(qn('w:type'), 'page')
-                    run._element.append(br)
+    #             # 3. Add Product Description on a new page if available
+    #             product_desc = st.session_state.get("product_description_result", "")
+    #             if product_desc:
+    #                 from docx.oxml.ns import qn
+    #                 from docx.oxml import OxmlElement
+    #                 # Insert page break
+    #                 page_break_p = doc.add_paragraph()
+    #                 run = page_break_p.add_run()
+    #                 br = OxmlElement('w:br')
+    #                 br.set(qn('w:type'), 'page')
+    #                 run._element.append(br)
 
-                    for line in product_desc.split('\n'):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        clean_line = line.replace("**", "")
-                        p = doc.add_paragraph()
-                        if ":" in clean_line:
-                            subheading, description = clean_line.split(":", 1)
-                            bold_run = p.add_run(subheading + ":")
-                            bold_run.bold = True
-                            p.add_run(description)
-                        else:
-                            p.add_run(clean_line)
+    #                 for line in product_desc.split('\n'):
+    #                     line = line.strip()
+    #                     if not line:
+    #                         continue
+    #                     clean_line = line.replace("**", "")
+    #                     p = doc.add_paragraph()
+    #                     if ":" in clean_line:
+    #                         subheading, description = clean_line.split(":", 1)
+    #                         bold_run = p.add_run(subheading + ":")
+    #                         bold_run.bold = True
+    #                         p.add_run(description)
+    #                     else:
+    #                         p.add_run(clean_line)
                 
-                buffer = BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
-                return buffer
+    #             buffer = BytesIO()
+    #             doc.save(buffer)
+    #             buffer.seek(0)
+    #             return buffer
 
-            st.download_button(
-                label="Download Result",
-                data=generate_docx(),
-                file_name="Listing_Final.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+    #         st.download_button(
+    #             label="Download Result",
+    #             data=generate_docx(),
+    #             file_name="Listing_Final.docx",
+    #             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    #         )
 
-    if st.session_state["product_description_result"]:
-        st.write("#### Product Description")
-        st.write(st.session_state["product_description_result"])
-
-
+    # if st.session_state["product_description_result"]:
+    #     st.write("#### Product Description")
+    #     st.write(st.session_state["product_description_result"])
 
 
 
- # st.session_state["ai_listing_draft"] = gemini_client.models.generate_content(
-#         model="gemini-3-flash-preview",
-#         contents=generate_listing_prompt,
-#         config=types.GenerateContentConfig(
-#         thinking_config=types.ThinkingConfig(
-#             thinking_level="MEDIUM" 
-#         ),
-#         temperature=0.2,
-#                 )).text
 
-# st.write(generate_listing_prompt)
+
