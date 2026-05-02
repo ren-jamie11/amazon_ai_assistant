@@ -366,7 +366,7 @@ client = get_openai_client(st.secrets["OPENAI_KEY"])
 def get_gemini_client(api_key):
     if "gemini_client" not in st.session_state:
         st.session_state.gemini_client = genai.Client(api_key=api_key,
-                                                      http_options=types.HttpOptions(timeout=10_000))
+                                                      http_options=types.HttpOptions(timeout=100_000))
     return st.session_state.gemini_client
 
 gemini_client = get_gemini_client(st.secrets["GEMINI_KEY"])
@@ -764,7 +764,7 @@ with image_description_col:
                             config=types.GenerateContentConfig(
                                 thinking_config=types.ThinkingConfig(thinking_level="LOW"),
                                 temperature=1.0,
-                                http_options=types.HttpOptions(timeout=300_000),
+                                http_options=types.HttpOptions(timeout=100_000),
                             )
                         ).text
 
