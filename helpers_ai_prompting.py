@@ -1127,18 +1127,20 @@ Each bullet must contain distinct, non-overlapping information.
 
 ## Bullet Format
 
-- Exactly 2 sentences per bullet, separated by a period.
-- Aim for ~250-300 characters including spaces; prioritize clarity over exact length 
 - Each bullet starts with a 2–4 word subheading that is specific and image-driven.
-  - Good: "WATERTIGHT FOR FRESH BLOOMS: ", "TIMELESS CHINOISERIE AESTHETIC: "
-  - Too vague: "FRESH FUNCTION: ", "TIMELESS STYLE: "
+  - Subheadings should evoke home decor sensibility — physical presence, atmosphere, craft, or how the piece lives in a space. Avoid tech/product-spec vocabulary like "specs," "control," "options," "design," "configuration," "system," or "settings," which sound cold and mechanical when applied to decor.
+  - Good: "WATERTIGHT FOR FRESH BLOOMS:", "TIMELESS CHINOISERIE AESTHETIC:", "PERFECTLY PROPORTIONED ELEGANCE:", "LASTING BLOOM BEAUTY:"
+  - Too vague: "FRESH FUNCTION:", "TIMELESS STYLE:"
+  - Too mechanical: "PRECISE ARRANGEMENT SPECS:", "FLEXIBLE DESIGN CONTROL:", "CUSTOMIZABLE DISPLAY OPTIONS:"
 
 ## Style & Tone
 
-- Warm, soothing, second person ("your").
+- Warm, soothing, second person ("your")
+- Avoid tech-product vocabulary throughout (not just in subheadings): words like "specs," "configuration," "control," "options," and "system" feel mechanical for home decor. Favor language of craft, atmosphere, and sensory presence.
 - Plain descriptors: use "shape," "look," "display." Avoid "silhouette," "vibes," "footprint."
 - Avoid sweeping words like "any" or "every."
 - No brand names.
+- Output format: Only output the 5 bullet points and nothing else.
 
 ## Keyword Integration
 
@@ -1174,6 +1176,7 @@ Examples:
   (Benefit replaced — blue and white cannot support a Christmas claim, so the benefit is reworked to one the actual colors do support.)
 
 The guiding principle: the corrected physical detail and the stated benefit must be internally consistent. Never pair a real attribute with a benefit it doesn't earn. If neither the original benefit nor a clearly supported alternative applies, omit the feature rather than invent one.
+
 
 ## INPUTS
 USER INPUT
