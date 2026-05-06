@@ -17,6 +17,11 @@ from openai import OpenAI
 from google import genai
 
 from google.genai import types
+from rainforest_api_credits import (
+    get_credits,
+    deduct_credits,
+    MONTHLY_RAINFOREST_API_LIMIT,
+)
 
 import json
 from pathlib import Path
@@ -90,10 +95,22 @@ def check_authentication():
     else:
         # User is authenticated, show welcome message
         st.sidebar.success(f"✅ 欢迎 {st.session_state['current_user']}!")
+
+        # Show monthly Rainforest API credits remaining
+        try:
+            credits_left = get_credits(st.session_state['current_user'])
+            st.sidebar.metric(
+                label="Rainforest API credits this month",
+                value=f"{credits_left} / {MONTHLY_RAINFOREST_API_LIMIT}",
+            )
+        except Exception as e:
+            st.sidebar.warning(f"⚠️ Could not load credits: {e}")
+
         if st.sidebar.button("Logout"):
             st.session_state['authenticated'] = False
             st.session_state.pop('current_user', None)
             st.rerun()
+
         return True  # Authenticated - allow UI display
 
 def concatenate_input():
@@ -604,78 +621,70 @@ with image_description_col:
             
             # Option b) Get via Rainforest API
             else:
-                with st.spinner("Scraping URLs..."):
-                    # ---- Rainforest API call ----
-                    start_time=time.time()
-                    st.session_state['rainforest_asin_json'] = get_amazon_product_data_parallel(product_asins, RAINFOREST_API_KEY)
-                    end_time=time.time()
-                    elapsed_time = end_time-start_time
-                    st.write(f"Amazon request took {elapsed_time:.2f} seconds")
+                # Option b) Get via Rainforest API
+                # ---- Credit check before making API calls ----
+                current_user = st.session_state['current_user']
+                credits_left = get_credits(current_user)
 
-                    if not st.session_state['rainforest_asin_json']:
-                        st.warning("No response from Rainforest API call...consider using local mode")
-                
-                # ---- Extract info from json payload ----
-                st.session_state['product_listings_from_urls'] = get_all_feature_bullets(st.session_state['rainforest_asin_json'])
-                st.session_state['asin_reviews_df'] = get_all_reviews(st.session_state['rainforest_asin_json'])
-                st.session_state['asin_reviews_str'] = concatenate_reviews(st.session_state['asin_reviews_df'])  
-                
-                combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
-
-                log_to_sheets(
-                    function_name="rainforest_api_listing",
-                    input_prompt=", ".join(product_urls),
-                    output=combined_listing,
-                )  
-
-                log_to_sheets(
-                    function_name="rainforest_api_reviews",
-                    input_prompt=", ".join(product_urls),
-                    output=st.session_state["asin_reviews_str"],
-                ) 
-
-            # ---- STEP 2: CHECK WHAT WE HAVE SO FAR (raw listings and reviews)
-            # --- SCENARIO 1: NO REVIEWS OR FEATURE BULLETS:
-            if not st.session_state['product_listings_from_urls'] and not st.session_state['asin_reviews_str']:
-                if st.session_state['rainforest_mode'] == True:
-                    st.warning("请从竞品库选至少一个链接 url")
+                if credits_left < len(product_asins):
+                    st.warning(
+                        f"You do not have enough credits remaining ({credits_left}). "
+                        f"This request needs {len(product_asins)}."
+                    )
+                    
                 else:
-                    st.warning("Sorry...please use local products for now.")
+                    with st.spinner("Scraping URLs..."):
+                        # ---- Rainforest API call ----
+                        start_time=time.time()
+                        st.session_state['rainforest_asin_json'] = get_amazon_product_data_parallel(product_asins, RAINFOREST_API_KEY)
+                        end_time=time.time()
+                        elapsed_time = end_time-start_time
+                        st.write(f"Amazon request took {elapsed_time:.2f} seconds")
 
-            else:
-                # --- SCENARIO 2: NO REVIEWS -------
-                if not st.session_state['asin_reviews_str']:
-                    if not st.session_state.get('rainforest_mode', True):
-                        st.warning("Could not extract reviews from JSON")
-                    # --- STEP 1: ANALYZE FEATURE BULLETS ONLY -----
-                    with st.spinner("Analyzing feature bullets..."):
-                        combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
-                        listing_summary_prompt = listing_features_prompt_template.format(product_listings=combined_listing)
-                        
-                        st.session_state["product_info_synthesis"] = complete_phrase(
-                            client,
-                            listing_summary_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
+                        # Deduct credits for the requested ASINs
+                        deduct_credits(current_user, len(product_asins))
 
-                        log_to_sheets(
-                            function_name="analyze_listing",
-                            input_prompt=", ".join(product_urls),
-                            output=st.session_state["product_info_synthesis"],
-                        )
+                        if not st.session_state['rainforest_asin_json']:
+                            st.warning("No response from Rainforest API call...consider using local mode")
 
-                # --- SCENARIO 3: HAS REVIEWS -------------
-                else:
-                    # --- STEP 1: ANALYZE FEATURE BULLETS  -----
-                    if not st.session_state['product_listings_from_urls']:
-                        st.warning("Could not extract feature bullets from JSON...")
-                        st.session_state["listing_analysis"] = ""
+                    # ---- Extract info from json payload ----
+                    st.session_state['product_listings_from_urls'] = get_all_feature_bullets(st.session_state['rainforest_asin_json'])
+                    st.session_state['asin_reviews_df'] = get_all_reviews(st.session_state['rainforest_asin_json'])
+                    st.session_state['asin_reviews_str'] = concatenate_reviews(st.session_state['asin_reviews_df'])
+                
+                    combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
+
+                    log_to_sheets(
+                        function_name="rainforest_api_listing",
+                        input_prompt=", ".join(product_urls),
+                        output=combined_listing,
+                    )  
+
+                    log_to_sheets(
+                        function_name="rainforest_api_reviews",
+                        input_prompt=", ".join(product_urls),
+                        output=st.session_state["asin_reviews_str"],
+                    ) 
+
+                # ---- STEP 2: CHECK WHAT WE HAVE SO FAR (raw listings and reviews)
+                # --- SCENARIO 1: NO REVIEWS OR FEATURE BULLETS:
+                if not st.session_state['product_listings_from_urls'] and not st.session_state['asin_reviews_str']:
+                    if st.session_state['rainforest_mode'] == True:
+                        st.warning("请从竞品库选至少一个链接 url")
                     else:
+                        st.warning("Sorry...please use local products for now.")
+
+                else:
+                    # --- SCENARIO 2: NO REVIEWS -------
+                    if not st.session_state['asin_reviews_str']:
+                        if not st.session_state.get('rainforest_mode', True):
+                            st.warning("Could not extract reviews from JSON")
+                        # --- STEP 1: ANALYZE FEATURE BULLETS ONLY -----
                         with st.spinner("Analyzing feature bullets..."):
                             combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
                             listing_summary_prompt = listing_features_prompt_template.format(product_listings=combined_listing)
-
-                            st.session_state["listing_analysis"] = complete_phrase(
+                            
+                            st.session_state["product_info_synthesis"] = complete_phrase(
                                 client,
                                 listing_summary_prompt,
                                 model='gpt-5.4-2026-03-05'
@@ -684,142 +693,165 @@ with image_description_col:
                             log_to_sheets(
                                 function_name="analyze_listing",
                                 input_prompt=", ".join(product_urls),
-                                output=st.session_state["listing_analysis"],
+                                output=st.session_state["product_info_synthesis"],
                             )
-                    
-                    # --- STEP 2: ANALYZE REVIEWS  -----
-                    with st.spinner("Analyzing reviews..."):
-                        reviews_summary_prompt = reviews_summary_prompt_redacted_template.format(product_reviews=st.session_state['asin_reviews_str'])
-                        reviews_usage_keywords_prompt = reviews_usage_keywords_prompt_template.format(product_reviews=st.session_state['asin_reviews_str'])
+
+                    # --- SCENARIO 3: HAS REVIEWS -------------
+                    else:
+                        # --- STEP 1: ANALYZE FEATURE BULLETS  -----
+                        if not st.session_state['product_listings_from_urls']:
+                            st.warning("Could not extract feature bullets from JSON...")
+                            st.session_state["listing_analysis"] = ""
+                        else:
+                            with st.spinner("Analyzing feature bullets..."):
+                                combined_listing = "\n\n".join([f"Listing {i+1}:\n\n{bp}" for i, bp in enumerate(st.session_state['product_listings_from_urls'])])
+                                listing_summary_prompt = listing_features_prompt_template.format(product_listings=combined_listing)
+
+                                st.session_state["listing_analysis"] = complete_phrase(
+                                    client,
+                                    listing_summary_prompt,
+                                    model='gpt-5.4-2026-03-05'
+                                )
+
+                                log_to_sheets(
+                                    function_name="analyze_listing",
+                                    input_prompt=", ".join(product_urls),
+                                    output=st.session_state["listing_analysis"],
+                                )
                         
-                        st.session_state["product_reviews_summary"] = complete_phrase(
-                            client,
-                            reviews_summary_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-
-                        st.session_state["usage_keywords_from_reviews"] = complete_phrase(
-                            client,
-                            reviews_usage_keywords_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-
-                        st.session_state["combined_reviews_output"] = (
-                            st.session_state["product_reviews_summary"]
-                            + "\n\n"
-                            + st.session_state["usage_keywords_from_reviews"]
-                        )
-
-                        log_to_sheets(
-                                function_name="analyze_reviews",
-                                input_prompt=", ".join(product_urls),
-                                output=st.session_state["combined_reviews_output"],
+                        # --- STEP 2: ANALYZE REVIEWS  -----
+                        with st.spinner("Analyzing reviews..."):
+                            reviews_summary_prompt = reviews_summary_prompt_redacted_template.format(product_reviews=st.session_state['asin_reviews_str'])
+                            reviews_usage_keywords_prompt = reviews_usage_keywords_prompt_template.format(product_reviews=st.session_state['asin_reviews_str'])
+                            
+                            st.session_state["product_reviews_summary"] = complete_phrase(
+                                client,
+                                reviews_summary_prompt,
+                                model='gpt-5.4-2026-03-05'
                             )
-                    
-                    # --- STEP 3: SYNTHESIZE INFO ----- 
-                    with st.spinner("Synthesizing info..."):
-                        listing_synthesizer_prompt = listing_synthesizer_prompt_template.format(listing_summary = st.session_state["listing_analysis"],
-                                                                                        reviews_summary = st.session_state["combined_reviews_output"])
 
-                        st.session_state["product_info_synthesis"] = complete_phrase(
-                            client,
-                            listing_synthesizer_prompt,
-                            model='gpt-5.4-2026-03-05'
-                        )
-            
-                # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]---
-                with st.spinner("Writing listing..."):
-                    st.session_state['formatted_search_terms'] = "\n".join(
-                        f"- {line}" for line in st.session_state["listing_bullet_keywords"].splitlines() if line.strip()
-                    )
-
-                    generate_listing_prompt_gpt = amazon_listing_prompt_template_revised_gpt.format(
-                        product_specs=st.session_state['product_specs'],
-                        keyword_search_phrases=st.session_state['formatted_search_terms'],
-                        product_features=st.session_state["product_info_synthesis"]
-                    )
-
-                    generate_listing_prompt_gemini = amazon_listing_prompt_template_revised_gemini.format(
-                        product_specs=st.session_state['product_specs'],
-                        keyword_search_phrases=st.session_state['formatted_search_terms'],
-                        product_features=st.session_state["product_info_synthesis"]
-                    )
-
-                    images = st.session_state.get('uploaded_images') or []
-
-                    log_input = (
-                        "specs:\n" + st.session_state.get('product_specs', '') +
-                        "\nlisting analysis:\n" + st.session_state.get('product_info_synthesis', '') +
-                        "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
-                    )
-
-                    def run_gpt():
-                        return complete_phrase(
-                            client,
-                            generate_listing_prompt_gpt,
-                            model='gpt-5.4-2026-03-05',
-                            images=images or None
-                        )
-
-                    def run_gemini():
-                        gemini_listing_contents = [generate_listing_prompt_gemini] + images
-                        return gemini_client.models.generate_content(
-                            model="gemini-3-flash-preview",
-                            contents=gemini_listing_contents,
-                            config=types.GenerateContentConfig(
-                                thinking_config=types.ThinkingConfig(thinking_level="LOW"),
-                                temperature=1.0,
-                                http_options=types.HttpOptions(timeout=100_000),
+                            st.session_state["usage_keywords_from_reviews"] = complete_phrase(
+                                client,
+                                reviews_usage_keywords_prompt,
+                                model='gpt-5.4-2026-03-05'
                             )
-                        ).text
 
-                    start = time.time()
+                            st.session_state["combined_reviews_output"] = (
+                                st.session_state["product_reviews_summary"]
+                                + "\n\n"
+                                + st.session_state["usage_keywords_from_reviews"]
+                            )
 
-                    with ThreadPoolExecutor(max_workers=2) as executor:
-                        future_gpt = executor.submit(run_gpt)
-                        future_gemini = executor.submit(run_gemini)
-
-                        # GPT result
-                        try:
-                            st.session_state["ai_listing_draft_gpt"] = future_gpt.result()
                             log_to_sheets(
-                                function_name="write_listing_draft_gpt",
-                                input_prompt=log_input,
-                                output=st.session_state["ai_listing_draft_gpt"],
-                                images_used=len(images),
+                                    function_name="analyze_reviews",
+                                    input_prompt=", ".join(product_urls),
+                                    output=st.session_state["combined_reviews_output"],
+                                )
+                        
+                        # --- STEP 3: SYNTHESIZE INFO ----- 
+                        with st.spinner("Synthesizing info..."):
+                            listing_synthesizer_prompt = listing_synthesizer_prompt_template.format(listing_summary = st.session_state["listing_analysis"],
+                                                                                            reviews_summary = st.session_state["combined_reviews_output"])
+
+                            st.session_state["product_info_synthesis"] = complete_phrase(
+                                client,
+                                listing_synthesizer_prompt,
+                                model='gpt-5.4-2026-03-05'
                             )
-                        except Exception as e:
-                            st.session_state["ai_listing_draft_gpt"] = ""
-                            st.warning(f"GPT listing generation failed: {e}")
-                            log_to_sheets(
-                                function_name="write_listing_draft_gpt",
-                                input_prompt=log_input,
-                                output=f"ERROR: {e}",
-                                images_used=len(images),
+                
+                    # --- STEP 3: WRITE LISTING FROM st.session_state["product_info_synthesis"]---
+                    with st.spinner("Writing listing..."):
+                        st.session_state['formatted_search_terms'] = "\n".join(
+                            f"- {line}" for line in st.session_state["listing_bullet_keywords"].splitlines() if line.strip()
+                        )
+
+                        generate_listing_prompt_gpt = amazon_listing_prompt_template_revised_gpt.format(
+                            product_specs=st.session_state['product_specs'],
+                            keyword_search_phrases=st.session_state['formatted_search_terms'],
+                            product_features=st.session_state["product_info_synthesis"]
+                        )
+
+                        generate_listing_prompt_gemini = amazon_listing_prompt_template_revised_gemini.format(
+                            product_specs=st.session_state['product_specs'],
+                            keyword_search_phrases=st.session_state['formatted_search_terms'],
+                            product_features=st.session_state["product_info_synthesis"]
+                        )
+
+                        images = st.session_state.get('uploaded_images') or []
+
+                        log_input = (
+                            "specs:\n" + st.session_state.get('product_specs', '') +
+                            "\nlisting analysis:\n" + st.session_state.get('product_info_synthesis', '') +
+                            "\nkeywords:\n" + st.session_state.get('listing_bullet_keywords', '')
+                        )
+
+                        def run_gpt():
+                            return complete_phrase(
+                                client,
+                                generate_listing_prompt_gpt,
+                                model='gpt-5.4-2026-03-05',
+                                images=images or None
                             )
 
-                        # Gemini result
-                        try:
-                            st.session_state["ai_listing_draft_gemini"] = future_gemini.result()
-                            log_to_sheets(
-                                function_name="write_listing_draft_gemini",
-                                input_prompt=log_input,
-                                output=st.session_state["ai_listing_draft_gemini"],
-                                images_used=len(images),
-                            )
-                        except Exception as e:
-                            st.session_state["ai_listing_draft_gemini"] = ""
-                            st.warning(f"Gemini listing generation failed: {e}")
-                            log_to_sheets(
-                                function_name="write_listing_draft_gemini",
-                                input_prompt=log_input,
-                                output=f"ERROR: {e}",
-                                images_used=len(images),
-                            )
+                        def run_gemini():
+                            gemini_listing_contents = [generate_listing_prompt_gemini] + images
+                            return gemini_client.models.generate_content(
+                                model="gemini-3-flash-preview",
+                                contents=gemini_listing_contents,
+                                config=types.GenerateContentConfig(
+                                    thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+                                    temperature=1.0,
+                                    http_options=types.HttpOptions(timeout=100_000),
+                                )
+                            ).text
 
-                    elapsed = time.time() - start
-                    st.write(f"Used {len(images)} images")
-                    st.write(f"Request took {elapsed:.2f} seconds")
+                        start = time.time()
+
+                        with ThreadPoolExecutor(max_workers=2) as executor:
+                            future_gpt = executor.submit(run_gpt)
+                            future_gemini = executor.submit(run_gemini)
+
+                            # GPT result
+                            try:
+                                st.session_state["ai_listing_draft_gpt"] = future_gpt.result()
+                                log_to_sheets(
+                                    function_name="write_listing_draft_gpt",
+                                    input_prompt=log_input,
+                                    output=st.session_state["ai_listing_draft_gpt"],
+                                    images_used=len(images),
+                                )
+                            except Exception as e:
+                                st.session_state["ai_listing_draft_gpt"] = ""
+                                st.warning(f"GPT listing generation failed: {e}")
+                                log_to_sheets(
+                                    function_name="write_listing_draft_gpt",
+                                    input_prompt=log_input,
+                                    output=f"ERROR: {e}",
+                                    images_used=len(images),
+                                )
+
+                            # Gemini result
+                            try:
+                                st.session_state["ai_listing_draft_gemini"] = future_gemini.result()
+                                log_to_sheets(
+                                    function_name="write_listing_draft_gemini",
+                                    input_prompt=log_input,
+                                    output=st.session_state["ai_listing_draft_gemini"],
+                                    images_used=len(images),
+                                )
+                            except Exception as e:
+                                st.session_state["ai_listing_draft_gemini"] = ""
+                                st.warning(f"Gemini listing generation failed: {e}")
+                                log_to_sheets(
+                                    function_name="write_listing_draft_gemini",
+                                    input_prompt=log_input,
+                                    output=f"ERROR: {e}",
+                                    images_used=len(images),
+                                )
+
+                        elapsed = time.time() - start
+                        st.write(f"Used {len(images)} images")
+                        st.write(f"Request took {elapsed:.2f} seconds")
 
 
     if st.session_state["formatted_search_terms"]:
