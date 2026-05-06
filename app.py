@@ -29,6 +29,7 @@ from pathlib import Path
 import gspread
 from google.oauth2.service_account import Credentials
 
+RAINFOREST_API_KEY = st.secrets['RAINFOREST_API_KEY']
 # --- GOOGLE SHEETS LOGGING ---
 
 _GS_SCOPES = [

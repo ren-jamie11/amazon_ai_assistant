@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse, parse_qs
 
-RAINFOREST_API_KEY = '7BB6F154E94E4BC399DC55368782B3E0'
-
 def get_amazon_product_data(
     asin: str,
     api_key,
