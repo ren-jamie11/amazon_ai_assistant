@@ -590,7 +590,7 @@ with image_description_col:
 
     # Generate listing!
     st.write("")
-    st.toggle("Online mode", key = 'rainforest_mode', value=True)
+    st.toggle(f"{st.session_state["amazon_domain"]}", key = 'rainforest_mode', value=True)
     st.write("")
 
     if st.button("Extract info"):
