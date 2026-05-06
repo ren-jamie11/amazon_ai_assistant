@@ -30,6 +30,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 RAINFOREST_API_KEY = st.secrets['RAINFOREST_API_KEY']
+AMAZON_DOMAINS = ['amazon.com', 'amazon.co.uk']
+
 # --- GOOGLE SHEETS LOGGING ---
 
 _GS_SCOPES = [
@@ -96,6 +98,13 @@ def check_authentication():
     else:
         # User is authenticated, show welcome message
         st.sidebar.success(f"✅ 欢迎 {st.session_state['current_user']}!")
+
+        # Domain selector
+        st.sidebar.selectbox(
+            "Domain",
+            options=AMAZON_DOMAINS,
+            key="amazon_domain",
+        )
 
         # Show monthly Rainforest API credits remaining
         try:
@@ -637,7 +646,11 @@ with image_description_col:
                     with st.spinner("Scraping URLs..."):
                         # ---- Rainforest API call ----
                         start_time=time.time()
-                        st.session_state['rainforest_asin_json'] = get_amazon_product_data_parallel(product_asins, RAINFOREST_API_KEY)
+                        st.session_state['rainforest_asin_json'] = get_amazon_product_data_parallel(
+                            product_asins,
+                            RAINFOREST_API_KEY,
+                            domain=st.session_state["amazon_domain"],
+                        )
                         end_time=time.time()
                         elapsed_time = end_time-start_time
                         st.write(f"Amazon request took {elapsed_time:.2f} seconds")

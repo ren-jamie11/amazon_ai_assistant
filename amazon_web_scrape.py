@@ -10,9 +10,11 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse, parse_qs
 
+
 def get_amazon_product_data(
     asin: str,
     api_key,
+    domain
 ) -> dict:
     """
     Fetch reviews for a given ASIN from the Rainforest API.
@@ -22,7 +24,7 @@ def get_amazon_product_data(
     """
     params = {
         'api_key': api_key,
-        'amazon_domain': 'amazon.com',
+        'amazon_domain': domain,
         'asin': asin,
         'type': 'product',
         'output': 'json',
@@ -35,17 +37,17 @@ def get_amazon_product_data(
     if api_result.status_code in (401, 403):
         raise RuntimeError(f"Rainforest API auth failed (HTTP {api_result.status_code}). Check API key.")
     if api_result.status_code == 404:
-        raise RuntimeError(f"ASIN {asin} not found on amazon.com.")
+        raise RuntimeError(f"ASIN {asin} not found on {domain}.")
     if not api_result.ok:
         raise RuntimeError(f"Rainforest API returned HTTP {api_result.status_code}: {api_result.text[:200]}")
 
     return api_result.json()
 
 
-def _fetch_with_timing(asin: str, api_key) -> tuple:
+def _fetch_with_timing(asin: str, api_key, domain) -> tuple:
     """Wrapper that times a single fetch. Returns (asin, data, elapsed_seconds)."""
     start = time.perf_counter()
-    data = get_amazon_product_data(asin, api_key)
+    data = get_amazon_product_data(asin, api_key, domain)
     elapsed = time.perf_counter() - start
     return asin, data, elapsed
 
@@ -54,6 +56,7 @@ def _fetch_with_timing(asin: str, api_key) -> tuple:
 def get_amazon_product_data_parallel(
     asin_list: List[str],
     api_key,
+    domain,
 ) -> dict:
     """
     Fetch product data for a list of ASINs in parallel.
@@ -70,7 +73,7 @@ def get_amazon_product_data_parallel(
     max_workers = min(len(asin_list), 5)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_asin = {
-            executor.submit(_fetch_with_timing, asin, api_key): asin
+            executor.submit(_fetch_with_timing, asin, api_key, domain): asin
             for asin in asin_list
         }
 
