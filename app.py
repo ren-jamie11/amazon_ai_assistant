@@ -1064,14 +1064,15 @@ with ai_tools_col:
         st.write("")
         st.markdown(f"##### {st.session_state["title_result"]}")
 
-    if st.session_state["ai_listing_draft_gpt"]:
-        st.write("#### GPT")
-        st.write(st.session_state["ai_listing_draft_gpt"])
+    tab1, tab2 = st.tabs(["GPT", "Gemini"])
 
-    st.write("")
-    if st.session_state["ai_listing_draft_gemini"]:
-        st.write("#### Gemini")
-        st.write(st.session_state["ai_listing_draft_gemini"])
+    with tab1:
+        if st.session_state["ai_listing_draft_gpt"]:
+            st.write(st.session_state["ai_listing_draft_gpt"])
+
+    with tab2:
+        if st.session_state["ai_listing_draft_gemini"]:
+            st.write(st.session_state["ai_listing_draft_gemini"])
 
 
     # st.write("")
