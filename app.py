@@ -510,22 +510,25 @@ with image_description_col:
 
 
                 if st.button("Generate description", key="generate_product_description_from_images"):
-                    # Progress bar
-                    progress = st.progress(0)
+                    if len(st.session_state.get('uploaded_images') or []) > 3:
+                        st.warning("请最多上传3张图片 (please have no more than 3 images)")
+                    else:
+                        # Progress bar
+                        progress = st.progress(0)
 
-                    # Process all images in a single API call
-                    result = process_multiple_images(
-                        st.session_state['uploaded_images'],
-                        client,
-                        "You are an expert at extracting product specifications and features from product images for Amazon listings",
-                        image_specs_instructions
-                    )
+                        # Process all images in a single API call
+                        result = process_multiple_images(
+                            st.session_state['uploaded_images'],
+                            client,
+                            "You are an expert at extracting product specifications and features from product images for Amazon listings",
+                            image_specs_instructions
+                        )
 
-                    # Store result in session state
-                    st.session_state['product_specs'] = result
-                    
-                    # Complete progress
-                    progress.progress(1.0)
+                        # Store result in session state
+                        st.session_state['product_specs'] = result
+
+                        # Complete progress
+                        progress.progress(1.0)
 
 
     # Initialize product_specs in session_state if it doesn't exist
@@ -572,14 +575,16 @@ with image_description_col:
             if st.session_state.get(f"keyword_listing_url_{i}", "").strip()
         ]
 
-        product_asins = [
+        product_asins = list(set(
             asin for asin in 
             (extract_amazon_asin(url) for url in product_urls)
             if asin is not None
-        ]
+        ))
 
         # Check if product_listings is empty
-        if not st.session_state.get('uploaded_images'):
+        if len(st.session_state.get('uploaded_images') or []) > 3:
+            st.warning("请最多上传3张图片 (please have no more than 3 images)")
+        elif not st.session_state.get('uploaded_images'):
             st.warning("请先上传产品图")
         elif not st.session_state['product_specs']:
             st.warning("请先输入关产品规格")
@@ -930,6 +935,11 @@ with ai_tools_col:
                         st.session_state["title_result"] = ""
                         return
 
+                    # Block generation if more than 3 images uploaded
+                    if len(st.session_state.get('uploaded_images') or []) > 3:
+                        st.warning("请最多上传3张图片 (please have no more than 3 images)")
+                        return
+
                     # If "Use uploaded images" is on but no images exist, block generation
                     if st.session_state.get('title_use_images', True) and not st.session_state.get('uploaded_images'):
                         st.warning("请先上传产品图")
@@ -1177,8 +1187,3 @@ with ai_tools_col:
     # if st.session_state["product_description_result"]:
     #     st.write("#### Product Description")
     #     st.write(st.session_state["product_description_result"])
-
-
-
-
-
