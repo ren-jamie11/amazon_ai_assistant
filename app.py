@@ -996,9 +996,9 @@ with ai_tools_col:
                     
                     # Extract singular words + top phrases from user input
                     search_terms = user_input.split("\n")
-                    sorted_search_terms = sort_search_terms(search_terms, keyword_phrases)
-                    primary_keywords = extract_unique_words(sorted_search_terms)
-                    top_search_terms = get_top_n_search_terms(sorted_search_terms)
+                    # sorted_search_terms = sort_search_terms(search_terms, keyword_phrases)
+                    primary_keywords = extract_unique_words(search_terms)
+                    top_search_terms = get_top_n_search_terms(search_terms)
 
                     # Writing the prompt
                     title_prompt = amazon_title_prompt_new_original.format(
