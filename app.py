@@ -585,6 +585,7 @@ with image_description_col:
         st.text_area("重点关键词", height=240, 
                      key='listing_bullet_keywords',
                      placeholder="e.g. gold picture frame, rustic ceramic vase",
+                     max_chars=200,
                      help = "会写在listing每个卖点最前面")
 
 
@@ -970,6 +971,7 @@ with ai_tools_col:
                     placeholder="e.g. white ceramic vase, artificial hydrangea stems",
                     key="input_keywords",
                     height=240,
+                    max_chars=150,
                     help = "AI 生成标题时会按搜索量排序"
                 )
 
