@@ -864,7 +864,7 @@ with image_description_col:
                                 )
 
                         elapsed = time.time() - start
-                        st.write(f"Used {len(images)} images")
+                        # st.write(f"Used {len(images)} images")
                         st.write(f"Request took {elapsed:.2f} seconds")
 
 
@@ -998,12 +998,11 @@ with ai_tools_col:
                     top_search_terms = get_top_n_search_terms(sorted_search_terms)
 
                     # Writing the prompt
-                    title_prompt = title_generator_prompt_gemini.format(
+                    title_prompt = amazon_title_prompt_new_original.format(
                                                         selected_product=selected_product,
                                                         top_search_terms=", ".join(top_search_terms),
                                                         primary_keywords=", ".join(primary_keywords),
                                                         secondary_keywords=st.session_state['secondary_keywords'],
-                                                        example_product_titles=example_product_titles
                                                     )
 
                     start = time.time()
