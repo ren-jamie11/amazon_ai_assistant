@@ -978,6 +978,7 @@ with ai_tools_col:
                 def generate_product_title():
                     user_input = st.session_state.get("input_keywords", "").strip()
                     if not user_input:
+                        st.warning("请输入关键词")
                         st.session_state["title_result"] = ""
                         return
 
